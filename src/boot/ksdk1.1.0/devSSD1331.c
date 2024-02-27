@@ -19,7 +19,7 @@ volatile uint8_t	payloadBytes[1];
 
 /*
  *	Override Warp firmware's use of these pins and define new aliases.
- */
+
 enum
 {
 	kSSD1331PinMOSI		= GPIO_MAKE_PIN(HW_GPIOA, 8),
@@ -28,7 +28,7 @@ enum
 	kSSD1331PinDC		= GPIO_MAKE_PIN(HW_GPIOA, 12),
 	kSSD1331PinRST		= GPIO_MAKE_PIN(HW_GPIOB, 0),
 };
-
+*/
 static int
 writeCommand(uint8_t commandByte)
 {
@@ -77,7 +77,7 @@ devSSD1331init(void)
 	PORT_HAL_SetMuxMode(PORTA_BASE, 8u, kPortMuxAlt3);
 	PORT_HAL_SetMuxMode(PORTA_BASE, 9u, kPortMuxAlt3);
 
-	enableSPIpins();
+	warpEnableSPIpins();
 
 	/*
 	 *	Override Warp firmware's use of these pins.
@@ -155,12 +155,48 @@ devSSD1331init(void)
 	writeCommand(0x5F);
 	writeCommand(0x3F);
 
-
-
 	/*
 	 *	Any post-initialization drawing commands go here.
 	 */
+	SEGGER_RTT_WriteString(0, "\r\n\tMeowMeowMeow Green.\n");
+	writeCommand(kSSD1331CommandCONTRASTA);		// 0x81
+	writeCommand(0xFF);
+	writeCommand(kSSD1331CommandCONTRASTB);		// 0x82
+	writeCommand(0xFF);
+	writeCommand(kSSD1331CommandCONTRASTC);		// 0x83
+	writeCommand(0xFF);
+
+	
+    // Set precharge to get to highest brightness, should follow Constrast by default if left blank
+	writeCommand(kSSD1331CommandPRECHARGEA);	// 0x8A
+	writeCommand(0x00);
+	writeCommand(kSSD1331CommandPRECHARGEB);	// 0x8B
+	writeCommand(0xFF);
+	writeCommand(kSSD1331CommandPRECHARGEC);	// 0x8C
+	writeCommand(0x00);
+	writeCommand(kSSD1331CommandPRECHARGELEVEL);	// 0xBB
+	writeCommand(0x3E);	
+
+   // set max current
+	writeCommand(kSSD1331CommandMASTERCURRENT);	// 0x87
+	writeCommand(0b1111);
+	
+	//writeCommand(kSSD1331CommandDISPLAYON);
+	writeCommand(kSSD1331CommandDRAWRECT); //0x22 - 22h is for recangle mode
+	writeCommand(0x00); // START COL
+	writeCommand(0x00); // START ROW
+	writeCommand(0x5F); // END COL
+	writeCommand(0x3F); // END ROW
+	
+	writeCommand(0x00);
+	writeCommand(0x3F);
+	writeCommand(0x00);
+	
+	writeCommand(0x00);
+	writeCommand(0x3F);
+	writeCommand(0x00);
 	//...
+
 
 
 

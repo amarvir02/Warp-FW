@@ -81,11 +81,12 @@
 #include "devMMA8451Q.h"
 #include "devMAG3110.h"
 #include "devL3GD20H.h"
-#include "devBME680.h"
+#include "devSSD1331.h"
+/*#include "devBME680.h"
 #include "devBMX055.h"
 #include "devCCS811.h"
 #include "devHDC1000.h"
-#include "devRV8803C7.h"
+#include "devRV8803C7.h"*/
 
 
 #if (WARP_BUILD_ENABLE_DEVADXL362)
@@ -1919,6 +1920,14 @@ main(void)
 	warpPrint("Press any key to show menu...\n");
 	gWarpExtraQuietMode = _originalWarpExtraQuietMode;
 
+	warpPrint("meow meow meow");
+
+    devSSD1331init();
+
+
+    warpPrint("Press any key to show menu...\n");
+    gWarpExtraQuietMode = _originalWarpExtraQuietMode;
+	
 	while (rttKey < 0 && timer < kWarpCsvstreamMenuWaitTimeMilliSeconds)
 	{
 		rttKey = SEGGER_RTT_GetKey();

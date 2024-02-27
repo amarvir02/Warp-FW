@@ -167,12 +167,69 @@ gpio_output_pin_user_config_t	outputPins[] = {
 		},
 	#elif (WARP_BUILD_ENABLE_FRDMKL03)
 
-	#endif
+		{
+		.pinName = GPIO_PINS_OUT_OF_RANGE,
+	},
 
 	{
-		.pinName = GPIO_PINS_OUT_OF_RANGE,
+		.pinName = kSSD1331PinMOSI,
+			.config.outputLogic = 1,
+			.config.slewRate = kPortSlowSlewRate,
+			.config.driveStrength = kPortLowDriveStrength,
+	},
+
+	{
+		.pinName = kSSD1331PinSCK,
+			.config.outputLogic = 1,
+			.config.slewRate = kPortSlowSlewRate,
+			.config.driveStrength = kPortLowDriveStrength,
+	},
+
+	{
+		.pinName = kSSD1331PinCSn,
+			.config.outputLogic = 1,
+			.config.slewRate = kPortSlowSlewRate,
+			.config.driveStrength = kPortLowDriveStrength,
+	},
+		
+	{
+		.pinName = kSSD1331PinDC,
+			.config.outputLogic = 1,
+			.config.slewRate = kPortSlowSlewRate,
+			.config.driveStrength = kPortLowDriveStrength,
+	},
+
+	{
+		.pinName = kSSD1331PinRST,
+			.config.outputLogic = 1,
+			.config.slewRate = kPortSlowSlewRate,
+			.config.driveStrength = kPortLowDriveStrength,
+	},
+	# endif
+// I need pins for the LED in the OLED
+/*	{
+		.pinName = kSSD1331PinRST,
+			.config.outputLogic = 1,
 	}
+
+	{
+		.pinName = kSSD1331PinRST,
+			.config.outputLogic = 1,
+	}
+
+*/
+
+
+
+
+
+
+
+
+
+
 };
+
 
 /*
  *	Configuration to be passed to GPIO_DRV_Init() to disable all pins.
