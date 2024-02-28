@@ -78,7 +78,7 @@ devSSD1331init(void)
 	PORT_HAL_SetMuxMode(PORTA_BASE, 8u, kPortMuxAlt3);
 	PORT_HAL_SetMuxMode(PORTA_BASE, 9u, kPortMuxAlt3);
 
-	warpEnableSPIpins(); // was previously enableSPIpins();
+	warpEnableSPIpins();
 
 	/*
 	 *	Override Warp firmware's use of these pins.
@@ -187,21 +187,24 @@ devSSD1331init(void)
 	//writeCommand(kSSD1331CommandMASTERCURRENT);	// 0x87
 	//writeCommand(0x0F);
 
+
     writeCommand(kSSD1331CommandDRAWRECT);
-    writeCommand(0x00); //start col
-    writeCommand(0x00); // start row
-    writeCommand(0x5F); // end col
-    writeCommand(0x3F); // end row
-   
-    writeCommand(0x00); 
-    writeCommand(0x3F); // setting border
+    // start column -> row
     writeCommand(0x00);
-    
     writeCommand(0x00);
-    writeCommand(0x3F); // setting fill
+    // end column -> row
+    writeCommand(0x5F);
+    writeCommand(0x3F);
+    // line colour BGR in rgb565
+    writeCommand(0x00);
+    writeCommand(0x3F);
+    writeCommand(0x00);
+    // fill colour BGR in rgb565
+    writeCommand(0x00);
+    writeCommand(0x3F);
     writeCommand(0x00);
 
-    SEGGER_RTT_WriteString(0, "\r\n\tRectangle should be shaded by now\n");
+    SEGGER_RTT_WriteString(0, "\r\n\tDone with draw rectangle...\n");
 
 	return 0;
 }

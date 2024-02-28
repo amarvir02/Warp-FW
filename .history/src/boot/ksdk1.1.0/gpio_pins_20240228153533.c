@@ -167,6 +167,10 @@ gpio_output_pin_user_config_t	outputPins[] = {
 		},
 	#elif (WARP_BUILD_ENABLE_FRDMKL03)
 
+		{
+		.pinName = GPIO_PINS_OUT_OF_RANGE,
+	},
+
 	{
 		.pinName = kSSD1331PinMOSI,
 			.config.outputLogic = 1,
@@ -202,9 +206,26 @@ gpio_output_pin_user_config_t	outputPins[] = {
 			.config.driveStrength = kPortLowDriveStrength,
 	},
 	# endif
-	{
-		.pinName = GPIO_PINS_OUT_OF_RANGE,
+// I need pins for the LED in the OLED
+/*	{
+		.pinName = kSSD1331PinRST,
+			.config.outputLogic = 1,
 	}
+
+	{
+		.pinName = kSSD1331PinRST,
+			.config.outputLogic = 1,
+	}
+
+*/
+
+
+
+
+
+
+
+
 
 
 };

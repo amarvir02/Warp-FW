@@ -78,7 +78,7 @@ devSSD1331init(void)
 	PORT_HAL_SetMuxMode(PORTA_BASE, 8u, kPortMuxAlt3);
 	PORT_HAL_SetMuxMode(PORTA_BASE, 9u, kPortMuxAlt3);
 
-	warpEnableSPIpins(); // was previously enableSPIpins();
+	warpEnableSPIpins();
 
 	/*
 	 *	Override Warp firmware's use of these pins.
@@ -187,9 +187,11 @@ devSSD1331init(void)
 	//writeCommand(kSSD1331CommandMASTERCURRENT);	// 0x87
 	//writeCommand(0x0F);
 
+
     writeCommand(kSSD1331CommandDRAWRECT);
     writeCommand(0x00); //start col
     writeCommand(0x00); // start row
+    
     writeCommand(0x5F); // end col
     writeCommand(0x3F); // end row
    

@@ -18,7 +18,8 @@ volatile uint8_t	payloadBytes[1];
 
 
 /*
- *	
+ *	Override Warp firmware's use of these pins and define new aliases.
+ *  NOT NEEDED - L. Bligh
  */
 // enum
 // {
@@ -78,7 +79,7 @@ devSSD1331init(void)
 	PORT_HAL_SetMuxMode(PORTA_BASE, 8u, kPortMuxAlt3);
 	PORT_HAL_SetMuxMode(PORTA_BASE, 9u, kPortMuxAlt3);
 
-	warpEnableSPIpins(); // was previously enableSPIpins();
+	warpEnableSPIpins();
 
 	/*
 	 *	Override Warp firmware's use of these pins.
@@ -156,7 +157,7 @@ devSSD1331init(void)
 	writeCommand(0x00);
 	writeCommand(0x5F);
 	writeCommand(0x3F);
-    SEGGER_RTT_WriteString(0, "\r\n\tMeow Meow Meow Green\n");
+    SEGGER_RTT_WriteString(0, "\r\n\tDone with screen clear...\n");
 
     /*
      *	Read the manual for the SSD1331 (SSD1331_1.2.pdf) to figure
@@ -164,7 +165,7 @@ devSSD1331init(void)
      *	of green.
      */
 
-    // set channel contrasts
+    //set max contrast (0xFF) on each colour channel for brightest green
     writeCommand(kSSD1331CommandCONTRASTA);		// 0x81
 	writeCommand(0xFF);
 	writeCommand(kSSD1331CommandCONTRASTB);		// 0x82
@@ -172,7 +173,7 @@ devSSD1331init(void)
 	writeCommand(kSSD1331CommandCONTRASTC);		// 0x83
 	writeCommand(0xFF);
     
-    // Set highest 1st phase precharge
+    // set highest precharge level possible and highest speed for max brightness
 	writeCommand(kSSD1331CommandPRECHARGEA);	// 0x8A
 	writeCommand(0xFF);
 	writeCommand(kSSD1331CommandPRECHARGEB);	// 0x8B
@@ -182,26 +183,28 @@ devSSD1331init(void)
 	writeCommand(kSSD1331CommandPRECHARGELEVEL);	// 0xBB
 	writeCommand(0x3E);	
 
-    // Don't need to actually set current cos it already defaults to max
-	// See manual
-	//writeCommand(kSSD1331CommandMASTERCURRENT);	// 0x87
-	//writeCommand(0x0F);
+    // set maximum pixel current for maximum brightness
+	writeCommand(kSSD1331CommandMASTERCURRENT);	// 0x87
+	writeCommand(0x0F);
+
 
     writeCommand(kSSD1331CommandDRAWRECT);
-    writeCommand(0x00); //start col
-    writeCommand(0x00); // start row
-    writeCommand(0x5F); // end col
-    writeCommand(0x3F); // end row
-   
-    writeCommand(0x00); 
-    writeCommand(0x3F); // setting border
+    // start column -> row
     writeCommand(0x00);
-    
     writeCommand(0x00);
-    writeCommand(0x3F); // setting fill
+    // end column -> row
+    writeCommand(0x5F);
+    writeCommand(0x3F);
+    // line colour BGR in rgb565
+    writeCommand(0x00);
+    writeCommand(0x3F);
+    writeCommand(0x00);
+    // fill colour BGR in rgb565
+    writeCommand(0x00);
+    writeCommand(0x3F);
     writeCommand(0x00);
 
-    SEGGER_RTT_WriteString(0, "\r\n\tRectangle should be shaded by now\n");
+    SEGGER_RTT_WriteString(0, "\r\n\tDone with draw rectangle...\n");
 
 	return 0;
 }
