@@ -1912,6 +1912,9 @@ main(void)
 	warpPrint("Boot done.\n");
 
 #if (!WARP_BUILD_ENABLE_GLAUX_VARIANT && WARP_BUILD_BOOT_TO_CSVSTREAM)
+	warpPrint("THIS IS WARP PRINT INITIIALISING THE OLED");
+
+    devSSD1331init();
 	int timer  = 0;
 	int rttKey = -1;
 
@@ -1920,13 +1923,6 @@ main(void)
 	warpPrint("Press any key to show menu...\n");
 	gWarpExtraQuietMode = _originalWarpExtraQuietMode;
 
-	warpPrint("meow meow meow");
-
-    devSSD1331init();
-
-
-    warpPrint("Press any key to show menu...\n");
-    gWarpExtraQuietMode = _originalWarpExtraQuietMode;
 	
 	while (rttKey < 0 && timer < kWarpCsvstreamMenuWaitTimeMilliSeconds)
 	{
