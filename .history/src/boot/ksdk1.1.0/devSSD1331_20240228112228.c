@@ -153,7 +153,7 @@ devSSD1331init(void)
 	writeCommand(0x00);
 	writeCommand(0x00);
 	writeCommand(0x5F);
-	writeCommand(0x1F);
+	writeCommand(0x3F);
 
 	/*
 	 *	Any post-initialization drawing commands go here.
