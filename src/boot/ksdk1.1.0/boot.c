@@ -82,11 +82,12 @@
 #include "devMAG3110.h"
 #include "devL3GD20H.h"
 #include "devSSD1331.h"
-/*#include "devBME680.h"
-#include "devBMX055.h"
-#include "devCCS811.h"
-#include "devHDC1000.h"
-#include "devRV8803C7.h"*/
+#include "devINA219.h"
+//#include "devBME680.h"
+//#include "devBMX055.h"
+//#include "devCCS811.h"
+//#include "devHDC1000.h"
+//#include "devRV8803C7.h"
 
 
 #if (WARP_BUILD_ENABLE_DEVADXL362)
@@ -185,6 +186,11 @@
 #if (WARP_BUILD_ENABLE_DEVBGX)
 	#include "devBGX.h"
 	volatile WarpUARTDeviceState			deviceBGXState;
+#endif
+
+#if (WARP_BUILD_ENABLE_DEVINA219)
+	#include "devINA219.h"
+	volatile Warp2CDeviceState			deviceINA219State;
 #endif
 
 typedef enum
