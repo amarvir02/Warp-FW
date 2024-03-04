@@ -102,6 +102,7 @@ typedef enum
 	kWarpSensorAS7262,
 	kWarpSensorAS7263,
 	kWarpSensorSCD30,
+	kWarpSensorINA219,
 } WarpSensorDevice;
 
 typedef enum
@@ -167,6 +168,10 @@ typedef enum
 	kWarpSensorConfigurationRegisterADXL362DEVID_AD			= 0x00,
 	kWarpSensorConfigurationRegisterADXL362DEVID_MST		= 0x01,
 	kWarpSensorConfigurationRegisterADXL362RESET			= 0x1F,
+
+	kWarpSensorConfigurationRegisterINA219Configuration		= 0x00,
+	kWarpSensorConfigurationRegisterINA219Calibration		= 0x05,
+
 } WarpSensorConfigurationRegister;
 
 typedef enum
@@ -198,19 +203,19 @@ typedef enum
 	kWarpSensorOutputRegisterCCS811RAW_DATA				= 0x03,
 	kWarpSensorOutputRegisterCCS811RAW_REF_NTC			= 0x06,
 
-	kWarpSensorOutputRegisterBMX055accelACCD_X_LSB			= 0x02,
-	kWarpSensorOutputRegisterBMX055accelACCD_X_MSB			= 0x03,
-	kWarpSensorOutputRegisterBMX055accelACCD_Y_LSB			= 0x04,
-	kWarpSensorOutputRegisterBMX055accelACCD_Y_MSB			= 0x05,
-	kWarpSensorOutputRegisterBMX055accelACCD_Z_LSB			= 0x06,
-	kWarpSensorOutputRegisterBMX055accelACCD_Z_MSB			= 0x07,
-	kWarpSensorOutputRegisterBMX055accelACCD_TEMP			= 0x08,
-	kWarpSensorOutputRegisterBMX055gyroRATE_X_LSB			= 0x02,
-	kWarpSensorOutputRegisterBMX055gyroRATE_X_MSB			= 0x03,
-	kWarpSensorOutputRegisterBMX055gyroRATE_Y_LSB			= 0x04,
-	kWarpSensorOutputRegisterBMX055gyroRATE_Y_MSB			= 0x05,
-	kWarpSensorOutputRegisterBMX055gyroRATE_Z_LSB			= 0x06,
-	kWarpSensorOutputRegisterBMX055gyroRATE_Z_MSB			= 0x07,
+	kWarpSensorOutputRegisterBMX055accelACCD_X_LSB		= 0x02,
+	kWarpSensorOutputRegisterBMX055accelACCD_X_MSB		= 0x03,
+	kWarpSensorOutputRegisterBMX055accelACCD_Y_LSB		= 0x04,
+	kWarpSensorOutputRegisterBMX055accelACCD_Y_MSB		= 0x05,
+	kWarpSensorOutputRegisterBMX055accelACCD_Z_LSB		= 0x06,
+	kWarpSensorOutputRegisterBMX055accelACCD_Z_MSB		= 0x07,
+	kWarpSensorOutputRegisterBMX055accelACCD_TEMP		= 0x08,
+	kWarpSensorOutputRegisterBMX055gyroRATE_X_LSB		= 0x02,
+	kWarpSensorOutputRegisterBMX055gyroRATE_X_MSB		= 0x03,
+	kWarpSensorOutputRegisterBMX055gyroRATE_Y_LSB		= 0x04,
+	kWarpSensorOutputRegisterBMX055gyroRATE_Y_MSB		= 0x05,
+	kWarpSensorOutputRegisterBMX055gyroRATE_Z_LSB		= 0x06,
+	kWarpSensorOutputRegisterBMX055gyroRATE_Z_MSB		= 0x07,
 	kWarpSensorOutputRegisterBMX055magX_LSB				= 0x42,
 	kWarpSensorOutputRegisterBMX055magX_MSB				= 0x43,
 	kWarpSensorOutputRegisterBMX055magY_LSB				= 0x44,
@@ -246,13 +251,18 @@ typedef enum
 	kWarpSensorOutputRegisterADXL362TEMP_L				= 0x14,
 	kWarpSensorOutputRegisterADXL362TEMP_H				= 0x15,
 	kWarpSensorOutputRegisterADXL362STATUS				= 0x0B,
-	kWarpSensorOutputRegisterADXL362FIFO_ENTRIES_L			= 0x0C,
-	kWarpSensorOutputRegisterADXL362FIFO_ENTRIES_H			= 0x0D,
-	kWarpSensorOutputRegisterADXL362ACT_INACT_CTL			= 0x27,
-	kWarpSensorOutputRegisterADXL362FIFO_CONTROL			= 0x28,
-	kWarpSensorOutputRegisterADXL362FIFO_SAMPLES			= 0x29,
+	kWarpSensorOutputRegisterADXL362FIFO_ENTRIES_L		= 0x0C,
+	kWarpSensorOutputRegisterADXL362FIFO_ENTRIES_H		= 0x0D,
+	kWarpSensorOutputRegisterADXL362ACT_INACT_CTL		= 0x27,
+	kWarpSensorOutputRegisterADXL362FIFO_CONTROL		= 0x28,
+	kWarpSensorOutputRegisterADXL362FIFO_SAMPLES		= 0x29,
 	kWarpSensorOutputRegisterADXL362FILTER_CTL			= 0x2C,
 	kWarpSensorOutputRegisterADXL362POWER_CTL			= 0x2D,
+
+	kWarpSensorOutputRegisterINA219SHUNT_VOLTAGE		= 0x01,
+	kWarpSensorOutputRegisterINA219BUS_VOLTAGE			= 0x02,
+	kWarpSensorOutputRegisterINA219POWER				= 0x03,
+	kWarpSensorOutputRegisterINA219CURRENT				= 0x04,
 
 
 } WarpSensorOutputRegister;

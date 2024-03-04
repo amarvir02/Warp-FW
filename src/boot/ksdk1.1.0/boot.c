@@ -82,7 +82,7 @@
 #include "devMAG3110.h"
 #include "devL3GD20H.h"
 #include "devSSD1331.h"
-#include "devINA219.h"
+//#include "devINA219.h"
 //#include "devBME680.h"
 //#include "devBMX055.h"
 //#include "devCCS811.h"
@@ -190,7 +190,7 @@
 
 #if (WARP_BUILD_ENABLE_DEVINA219)
 	#include "devINA219.h"
-	volatile Warp2CDeviceState			deviceINA219State;
+	volatile WarpI2CDeviceState			deviceINA219State;
 #endif
 
 typedef enum
@@ -1674,6 +1674,12 @@ main(void)
 /*
  *	Initialize all the sensors
  */
+
+// This guy supports 0x40 through to 0x55 (16 addresses) depending on what you wire up to A0 and A1
+#if (WARP_BUILD_ENABLE_DEVINA219)
+		initMMA8451Q(	0x40	/* i2cAddress */,	kWarpDefaultSupplyVoltageMillivoltsINA219	);
+#endif
+
 #if (WARP_BUILD_ENABLE_DEVBMX055)
 		initBMX055accel(0x18	/* i2cAddress */,	kWarpDefaultSupplyVoltageMillivoltsBMX055accel	);
 		initBMX055gyro(	0x68	/* i2cAddress */,	kWarpDefaultSupplyVoltageMillivoltsBMX055gyro	);
@@ -1681,7 +1687,7 @@ main(void)
 #endif
 
 #if (WARP_BUILD_ENABLE_DEVMMA8451Q)
-		initMMA8451Q(	0x1C	/* i2cAddress */,	kWarpDefaultSupplyVoltageMillivoltsMMA8451Q	);
+		initMMA8451Q(	0x1D	/* i2cAddress */,	kWarpDefaultSupplyVoltageMillivoltsMMA8451Q	);
 #endif
 
 #if (WARP_BUILD_ENABLE_DEVLPS25H)
@@ -1695,9 +1701,9 @@ main(void)
 #if (WARP_BUILD_ENABLE_DEVMAG3110)
 		initMAG3110(	0x0E	/* i2cAddress */,	kWarpDefaultSupplyVoltageMillivoltsMAG3110	);
 #endif
-
+// I2C ADRESS CONFLICT! - changed from 0x40 to 0x41 - Idek if it supports 0x41. 
 #if (WARP_BUILD_ENABLE_DEVSI7021)
-		initSI7021(	0x40	/* i2cAddress */,	kWarpDefaultSupplyVoltageMillivoltsSI7021	);
+		initSI7021(	0x41	/* i2cAddress */,	kWarpDefaultSupplyVoltageMillivoltsSI7021	);
 #endif
 
 #if (WARP_BUILD_ENABLE_DEVL3GD20H)
@@ -1920,10 +1926,7 @@ main(void)
 
 #if (!WARP_BUILD_ENABLE_GLAUX_VARIANT && WARP_BUILD_BOOT_TO_CSVSTREAM)
 	
-	#if(WARP_BUILD_ENABLE_FRDMKL03)
-    warpPrint("THIS IS WARP PRINT INITIIALISING THE OLED");
-    devSSD1331init();
-	#endif
+
 	
 	int timer  = 0;
 	int rttKey = -1;
@@ -1933,7 +1936,12 @@ main(void)
 	warpPrint("Press any key to show menu...\n");
 	gWarpExtraQuietMode = _originalWarpExtraQuietMode;
 
-	
+// if doing make frdm, then run the oled as green, and maybe we can get current display here 
+#if(WARP_BUILD_ENABLE_FRDMKL03)
+    warpPrint("THIS IS WARP PRINT INITIIALISING THE OLED");
+    devSSD1331init();
+#endif	
+
 	while (rttKey < 0 && timer < kWarpCsvstreamMenuWaitTimeMilliSeconds)
 	{
 		rttKey = SEGGER_RTT_GetKey();
@@ -2105,9 +2113,12 @@ main(void)
 					warpPrint("\r\t- '1' ADXL362			(0x00--0x2D): 1.6V -- 3.5V (compiled out) \n");
 #endif
 
+
+
+
 #if (WARP_BUILD_ENABLE_DEVBMX055)
-				warpPrint("\r\t- '2' BMX055accel		(0x00--0x3F): 2.4V -- 3.6V\n");
-				warpPrint("\r\t- '3' BMX055gyro		(0x00--0x3F): 2.4V -- 3.6V\n");
+					warpPrint("\r\t- '2' BMX055accel		(0x00--0x3F): 2.4V -- 3.6V\n");
+					warpPrint("\r\t- '3' BMX055gyro		(0x00--0x3F): 2.4V -- 3.6V\n");
 					warpPrint("\r\t- '4' BMX055mag			(0x40--0x52): 2.4V -- 3.6V\n");
 #else
 					warpPrint("\r\t- '2' BMX055accel 		(0x00--0x3F): 2.4V -- 3.6V (compiled out) \n");
@@ -2193,6 +2204,11 @@ main(void)
 					warpPrint("\r\t- 'k' AS7263			(0x00--0x2B): 2.7V -- 3.6V (compiled out) \n");
 #endif
 
+#if (WARP_BUILD_ENABLE_DEVINA219)
+					warpPrint("\r\t- 'l' INA219			(0x00--0x05): ?V\n");
+#else
+					warpPrint("\r\t- 'l' INA219			(0x00--0x05): ?V (compiled out) \n");
+#endif
 				warpPrint("\r\tEnter selection> ");
 				key = warpWaitKey();
 
@@ -2206,6 +2222,7 @@ main(void)
 						break;
 					}
 #endif
+
 
 #if (WARP_BUILD_ENABLE_DEVBMX055)
 					case '2':
@@ -2342,6 +2359,19 @@ main(void)
 						break;
 					}
 #endif
+
+#if (WARP_BUILD_ENABLE_DEVINA219)
+					case 'l':
+					{
+						menuTargetSensor = kWarpSensorINA219;
+						menuI2cDevice = &deviceINA219State;
+						// WRITE SENSOR REGS
+						//writeSensorRegisterINA219(0X00, 0x019F);
+						//writeSensorRegisterINA219(0X05, 0x02000);
+						break;
+					}
+#endif
+
 					default:
 					{
 						warpPrint("\r\tInvalid selection '%c' !\n", key);
@@ -3544,6 +3574,13 @@ printAllSensors(bool printHeadersAndCalibration, bool hexModeFlag,
 		kWarpSensorConfigurationRegisterHDC1000Configuration, /* Configuration register	*/
 		(0b1010000 << 8));
 #endif
+// config reg INA219
+// currently setting default reg value
+#if (WARP_BUILD_ENABLE_DEVINA219)
+	numberOfConfigErrors += writeSensorRegisterINA219(
+		kWarpSensorConfigurationRegisterINA219Configuration, /* Configuration register	*/
+		0b0011100110011111);
+#endif
 
 	if (printHeadersAndCalibration)
 	{
@@ -3594,6 +3631,14 @@ printAllSensors(bool printHeadersAndCalibration, bool hexModeFlag,
 		warpPrint(" HDC1000 Temp, HDC1000 Hum,");
 #endif
 
+//!!
+
+#if (WARP_BUILD_ENABLE_INA219)
+warpPrint(" INA219 Shunt voltage, INA219 Bus voltage, INA219 Power, INA219 Current");
+#endif
+numberOfConfigErrors += writeSensorRegisterINA219(
+		kWarpSensorConfigurationRegisterINA219Configuration, /* Configuration register	*/
+		0b0011100110011111);
 #if (WARP_CSVSTREAM_FLASH_PRINT_METADATA)
 		warpPrint(" RTC->TSR, RTC->TPR,");
 #endif
@@ -3644,6 +3689,10 @@ printAllSensors(bool printHeadersAndCalibration, bool hexModeFlag,
 
 #if (WARP_BUILD_ENABLE_DEVHDC1000)
 		printSensorDataHDC1000(hexModeFlag);
+#endif
+
+#if (WARP_BUILD_ENABLE_DEVINA219)
+		printSensorDataINA219(hexModeFlag);
 #endif
 
 #if (WARP_CSVSTREAM_FLASH_PRINT_METADATA)
@@ -3723,7 +3772,7 @@ loopForSensor(	const char *  tagString,
 	{
 		for (int i = 0; i < readCount; i++) for (int j = 0; j < chunkReadsPerAddress; j++)
 			{
-			status = readSensorRegisterFunction(address+j, 1 /* numberOfBytes */);
+			status = readSensorRegisterFunction(address+j, 2);
 				if (status == kWarpStatusOK)
 				{
 					nSuccesses++;
@@ -3758,9 +3807,10 @@ loopForSensor(	const char *  tagString,
 
 						if (chatty)
 						{
-						warpPrint("\r\t0x%02x --> 0x%02x\n",
+						warpPrint("\r\t0x%02x --> 0x%02x%02x\n",
 							address+j,
-									  i2cDeviceState->i2cBuffer[0]);
+									  i2cDeviceState->i2cBuffer[0],
+									  i2cDeviceState->i2cBuffer[1]);
 						}
 					}
 				}
@@ -4310,7 +4360,54 @@ repeatRegisterReadForDeviceAndAddress(WarpSensorDevice warpSensorDevice, uint8_t
 #else
 			warpPrint("\r\n\tAS7263 Read Aborted. Device Disabled :( ");
 #endif
-
+			break;
+		}
+//
+//#if (WARP_BUILD_ENABLE_DEVMMA8451Q)
+//				loopForSensor(	"\r\nMMA8451Q:\n\r",		/*	tagString			*/
+//						&readSensorRegisterMMA8451Q,	/*	readSensorRegisterFunction	*/
+//						&deviceMMA8451QState,		/*	i2cDeviceState			*/
+//						NULL,				/*	spiDeviceState			*/
+//						baseAddress,			/*	baseAddress			*/
+//						0x00,				/*	minAddress			*/
+//						0x31,				/*	maxAddress			*/
+//						repetitionsPerAddress,		/*	repetitionsPerAddress		*/
+//						chunkReadsPerAddress,		/*	chunkReadsPerAddress		*/
+//						spinDelay,			/*	spinDelay			*/
+//						autoIncrement,			/*	autoIncrement			*/
+//						sssupplyMillivolts,		/*	sssupplyMillivolts		*/
+//						referenceByte,			/*	referenceByte			*/
+//						adaptiveSssupplyMaxMillivolts,	/*	adaptiveSssupplyMaxMillivolts	*/
+//						chatty				/*	chatty				*/
+//			);
+//#else
+//			warpPrint("\r\n\tMMA8451Q Read Aborted. Device Disabled :(");
+//#endif
+		case kWarpSensorINA219:
+		{
+/*
+ *	AS7263: VDD 2.7--3.6
+ */
+#if WARP_BUILD_ENABLE_DEVINA219
+				loopForSensor(	"\r\nINA219:\n\r",		/*	tagString			*/
+						&readSensorRegisterINA219,	/*	readSensorRegisterFunction	*/
+						&deviceINA219State,		/*	i2cDeviceState			*/
+						NULL,				/*	spiDeviceState			*/
+						baseAddress,			/*	baseAddress			*/
+						0x00,				/*	minAddress			*/
+						0x05,				/*	maxAddress			*/
+						repetitionsPerAddress,		/*	repetitionsPerAddress		*/
+						chunkReadsPerAddress,		/*	chunkReadsPerAddress		*/
+						spinDelay,			/*	spinDelay			*/
+						autoIncrement,			/*	autoIncrement			*/
+						sssupplyMillivolts,		/*	sssupplyMillivolts		*/
+						referenceByte,			/*	referenceByte			*/
+						adaptiveSssupplyMaxMillivolts,	/*	adaptiveSssupplyMaxMillivolts	*/
+						chatty				/*	chatty				*/
+			);
+#else
+			warpPrint("\r\n\tINA219 Read Aborted. Device Disabled :( ");
+#endif
 			break;
 		}
 

@@ -1,3 +1,6 @@
+// ac2362 - modified from HDC1000.c because it has 16B registers too.
+
+
 /*
 	Authored 2016-2018. Phillip Stanley-Marbell. Additional contributors,
 	2018-onwards, see git log.
@@ -57,7 +60,7 @@
 #include "SEGGER_RTT.h"
 #include "warp.h"
 
-extern volatile WarpI2CDeviceState	deviceINA2190State;
+extern volatile WarpI2CDeviceState	deviceINA219State;
 extern volatile uint32_t		gWarpI2cBaudRateKbps;
 extern volatile uint32_t		gWarpI2cTimeoutMilliseconds;
 extern volatile uint32_t		gWarpSupplySettlingDelayMilliseconds;
@@ -80,7 +83,7 @@ writeSensorRegisterINA219(uint8_t deviceRegister, uint16_t payload)
 
 	switch (deviceRegister)
 	{
-		case 0x02:
+		case 0x00: case 0x05: //writeable registers on the INA219 are only these two
 		{
 			/* OK */
 			break;
@@ -98,7 +101,7 @@ writeSensorRegisterINA219(uint8_t deviceRegister, uint16_t payload)
 			.baudRate_kbps = gWarpI2cBaudRateKbps};
 
 	warpScaleSupplyVoltage(deviceINA219State.operatingVoltageMillivolts);
-
+	warpEnableI2Cpins();
 	commandByte[0] = deviceRegister;
 	payloadByte[0] = (payload >> 8) & 0xFF; /* MSB first */
 	payloadByte[1] = payload & 0xFF;        /* LSB */
@@ -109,7 +112,7 @@ writeSensorRegisterINA219(uint8_t deviceRegister, uint16_t payload)
 		1,
 		payloadByte,
 		2,
-		1000);
+		gWarpI2cTimeoutMilliseconds);
 	if (returnValue != kStatus_I2C_Success)
 	{
 		return kWarpStatusDeviceCommunicationFailed;
@@ -118,9 +121,60 @@ writeSensorRegisterINA219(uint8_t deviceRegister, uint16_t payload)
 	return kWarpStatusOK;
 }
 
+//WarpStatus
+//readSensorRegisterINA219(uint8_t deviceRegister, int numberOfBytes)
+//{
+//	uint8_t		cmdBuf[1] = {0xFF};
+//	i2c_status_t	status;
+//	// should I also add a case statement for the readable regs on the INA219 - they're all readable?
+//		USED(numberOfBytes);
+//	switch (deviceRegister)
+//	{
+//		case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: 
+//		{
+//			/* OK */
+//			break;
+//		}
+//
+//		default:
+//		{
+//			return kWarpStatusBadDeviceCommand;
+//		}
+//	}
+//
+//	i2c_device_t slave =
+//		{
+//		.address = deviceINA219State.i2cAddress,
+//		.baudRate_kbps = gWarpI2cBaudRateKbps
+//	};
+//
+//	warpScaleSupplyVoltage(deviceINA219State.operatingVoltageMillivolts);
+//	cmdBuf[0] = deviceRegister;
+//	warpEnableI2Cpins();
+//
+//	status = I2C_DRV_MasterReceiveDataBlocking(
+//		0 /* I2C peripheral instance */,
+//		&slave,
+//		cmdBuf,
+//		1,
+//		(uint8_t *)deviceINA219State.i2cBuffer,
+//		numberOfBytes,
+//		gWarpI2cTimeoutMilliseconds);
+//		
+//
+//	if (status != kStatus_I2C_Success)
+//	{
+//		return kWarpStatusDeviceCommunicationFailed;
+//	}
+//
+//	return kWarpStatusOK;
+//}
+//
+
 WarpStatus
 readSensorRegisterINA219(uint8_t deviceRegister, int numberOfBytes)
 {
+	
 	uint8_t cmdBuf[1] = {0xFF};
 	i2c_status_t status1, status2;
 
@@ -130,50 +184,24 @@ readSensorRegisterINA219(uint8_t deviceRegister, int numberOfBytes)
 			.baudRate_kbps = gWarpI2cBaudRateKbps};
 
 	USED(numberOfBytes);
+	switch (deviceRegister)
+	{
+		case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05: 
+		{
+			/* OK */
+			break;
+		}
+
+		default:
+		{
+			return kWarpStatusBadDeviceCommand;
+		}
+	}
 
 	warpScaleSupplyVoltage(deviceINA219State.operatingVoltageMillivolts);
 	warpEnableI2Cpins();
-	if (deviceRegister == 0 || deviceRegister == 1)
-	{
 		/*
-			Steps:
-			(1)	Write transaction beginning with start condition, slave address,
-				and pointer address (0x02 == configuration register) and 2
-				bytes of config values to be written  (total payload of 3 bytes).
-
-			(2)	Write transaction beginning with start condition, slave address,
-				and pointer address (0x00/0x01 == humidity/temperature). Total
-				payload is just 1 byte. (Trigger measurement)
-
-			(3)	Wait 10ms for conversion to complete.
-
-			(4)	Read transaction beginning with start condition, followed by
-				slave address, and read 2 byte payload
-
-			Note: to get this to work, had to make the following changes to the default KSDK I2C driver:
-
-			diff KSDK_1.1.0/platform/drivers/src/i2c/fsl_i2c_master_driver.c KSDK_1.1.0/platform/drivers/src/i2c/fsl_i2c_master_driver.c.orig.pip
-			617c617
-			< //    assert(txBuff);
-			---
-			>     assert(txBuff);
-			657,664d656
-			<     //
-			<     //  If txSize is zero, don't try to send anything
-			<     //
-			<     if (txSize == 0)
-			<     {
-			<             goto skip;
-			<     }
-			<
-			683d674
-			< skip:
-
-			Also added a check to KSDK_1.1.0/platform/hal/src/i2c/fsl_i2c_hal.c so we don't assert whern can't find the device on I2C
-		*/
-
-		/*
-		 *	Step 1: Trigger temperature/humidity measurement
+		 *	Step 1: Trigger measurement 1
 		 */
 		cmdBuf[0] = deviceRegister;
 
@@ -187,12 +215,12 @@ readSensorRegisterINA219(uint8_t deviceRegister, int numberOfBytes)
 			gWarpI2cTimeoutMilliseconds);
 
 		/*
-		 *	Step 2: Wait for max 6.5ms for conversion completion (see Table 7.5 of INA2190 datasheet)
+		 *	Step 2: Wait for max 6.5ms for conversion completion (see Table 7.5 of HDC1000 datasheet)
 		 */
-		OSA_TimeDelay(7);
+		OSA_TimeDelay(5);
 
 		/*
-		 *	Step 3: Read temp/humidity
+		 *	Step 3: Read from the 5 registers
 		 */
 		status2 = I2C_DRV_MasterReceiveDataBlocking(
 			0 /* I2C peripheral instance */,
@@ -207,7 +235,6 @@ readSensorRegisterINA219(uint8_t deviceRegister, int numberOfBytes)
 		{
 			return kWarpStatusDeviceCommunicationFailed;
 		}
-	}
 	else
 	{
 		cmdBuf[0] = deviceRegister;
@@ -217,7 +244,7 @@ readSensorRegisterINA219(uint8_t deviceRegister, int numberOfBytes)
 			&slave,
 			cmdBuf,
 			1,
-			(uint8_t*)deviceINA219State.i2cBuffer,
+			(uint8_t*)deviceState.i2cBuffer,
 			numberOfBytes,
 			gWarpI2cTimeoutMilliseconds);
 
@@ -230,17 +257,30 @@ readSensorRegisterINA219(uint8_t deviceRegister, int numberOfBytes)
 	return kWarpStatusOK;
 }
 
+// Looks to take read values from over the I2C bus and manipulating them for printing.
 void
 printSensorDataINA219(bool hexModeFlag)
 {
 	uint16_t	readSensorRegisterValueLSB;
 	uint16_t	readSensorRegisterValueMSB;
 	int16_t		readSensorRegisterValueCombined;
+
+	float 		myshuntvoltage;
+	float 		mybusvoltage;
+	float 		mypower;
+	float 		mycurrent;
+	
 	WarpStatus	i2cReadStatus;
+
+	warpScaleSupplyVoltage(deviceINA219State.operatingVoltageMillivolts);
+	//kWarpSensorOutputRegisterINA219SHUNT_VOLTAGE			= 0x01,
+	//kWarpSensorOutputRegisterINA219BUS_VOLTAGE			= 0x02,
+	//kWarpSensorOutputRegisterINA219POWER					= 0x03,
+	//kWarpSensorOutputRegisterINA219CURRENT				= 0x04,
 
 
 	warpScaleSupplyVoltage(deviceINA219State.operatingVoltageMillivolts);
-	i2cReadStatus = readSensorRegisterINA219(kWarpSensorOutputRegisterINA219Temperature, 2 /* numberOfBytes */);
+	i2cReadStatus = readSensorRegisterINA219(kWarpSensorOutputRegisterINA219SHUNT_VOLTAGE, 2 /* numberOfBytes */);
 	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
 	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
 	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 8) | (readSensorRegisterValueLSB & 0xFF);
@@ -262,13 +302,22 @@ printSensorDataINA219(bool hexModeFlag)
 		else
 		{
 			/*
-			 *	See Section 8.6.1 of the INA219 manual for the conversion to temperature.
+			 *	So we do some conversion on this to give a number as output rather than some 0s and 1s
+			 *	Reverse the process described in the manual
+			 * 
+			 * 	The leading bit is sign
+			 * 	The number you have in the register is an actual value that's mul'ed by x100
+			 * 	to give you 2dp precision.
+			 * 	
+			 * 	
 			 */
-			warpPrint(" %d,", (readSensorRegisterValueCombined * 165 / (1u << 16)) - 40);
+			myshuntvoltage = readSensorRegisterValueCombined;
+			warpPrint(" %f,", readSensorRegisterValueCombined );
+			//warpPrint(" %f,", (myshuntvoltage/(100) ));
 		}
 	}
 
-	i2cReadStatus = readSensorRegisterINA219(kWarpSensorOutputRegisterINA219Humidity, 2 /* numberOfBytes */);
+	i2cReadStatus = readSensorRegisterINA219(kWarpSensorOutputRegisterINA219BUS_VOLTAGE, 2 /* numberOfBytes */);
 	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
 	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
 	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 8) | (readSensorRegisterValueLSB & 0xFF);
@@ -292,7 +341,68 @@ printSensorDataINA219(bool hexModeFlag)
 			/*
 			 *	See Section 8.6.2 of the INA219 manual for the conversion to temperature.
 			 */
-			warpPrint(" %d,", (readSensorRegisterValueCombined * 100 / (1u << 16)));
+			readSensorRegisterValueCombined = ((readSensorRegisterValueCombined & 0xFF)>>3);
+			mybusvoltage = readSensorRegisterValueCombined;
+			warpPrint(" %f,", mybusvoltage);
+		}
+	}
+
+	i2cReadStatus = readSensorRegisterINA219(kWarpSensorOutputRegisterINA219POWER, 2 /* numberOfBytes */);
+	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
+	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 8) | (readSensorRegisterValueLSB & 0xFF);
+
+	/*
+	 *	NOTE: Here, we don't need to manually sign extend since we are packing directly into an int16_t
+	 */
+
+	if (i2cReadStatus != kWarpStatusOK)
+	{
+		warpPrint(" ----,");
+	}
+	else
+	{
+		if (hexModeFlag)
+		{
+			warpPrint(" 0x%02x 0x%02x,", readSensorRegisterValueMSB, readSensorRegisterValueLSB);
+		}
+		else
+		{
+			/*
+			 *	See Section 8.6.2 of the INA219 manual for the conversion to temperature.
+			 */
+			mypower = readSensorRegisterValueCombined;
+			warpPrint(" %f,", (mypower));
+		}
+	}
+
+	i2cReadStatus = readSensorRegisterINA219(kWarpSensorOutputRegisterINA219CURRENT, 2 /* numberOfBytes */);
+	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
+	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 8) | (readSensorRegisterValueLSB & 0xFF);
+
+	/*
+	 *	NOTE: Here, we don't need to manually sign extend since we are packing directly into an int16_t
+	 */
+
+	if (i2cReadStatus != kWarpStatusOK)
+	{
+		warpPrint(" ----,");
+	}
+	else
+	{
+		if (hexModeFlag)
+		{
+			warpPrint(" 0x%02x 0x%02x,", readSensorRegisterValueMSB, readSensorRegisterValueLSB);
+		}
+		else
+		{
+			/*
+			 *	See Section 8.6.2 of the INA219 manual for the conversion to temperature.
+			 */
+
+			mycurrent = readSensorRegisterValueCombined;
+			warpPrint(" %f,", (mycurrent));
 		}
 	}
 }
@@ -308,7 +418,7 @@ appendSensorDataINA219(uint8_t* buf)
 	WarpStatus i2cReadStatus;
 
 	warpScaleSupplyVoltage(deviceINA219State.operatingVoltageMillivolts);
-	i2cReadStatus                   = readSensorRegisterINA219(kWarpSensorOutputRegisterINA219Temperature, 2 /* numberOfBytes */);
+	i2cReadStatus                   = readSensorRegisterINA219(kWarpSensorOutputRegisterINA219SHUNT_VOLTAGE, 2 /* numberOfBytes */);
 	readSensorRegisterValueMSB      = deviceINA219State.i2cBuffer[0];
 	readSensorRegisterValueLSB      = deviceINA219State.i2cBuffer[1];
 	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 8) | (readSensorRegisterValueLSB & 0xFF);
@@ -327,7 +437,10 @@ appendSensorDataINA219(uint8_t* buf)
 	}
 	else
 	{
-		readSensorRegisterValueCombined = (readSensorRegisterValueCombined * 165 / (1u << 16)) - 40;
+
+		readSensorRegisterValueCombined = (readSensorRegisterValueCombined/100);
+		
+
 		/*
 		 * MSB first
 		 */
@@ -338,7 +451,7 @@ appendSensorDataINA219(uint8_t* buf)
 		index += 1;
 	}
 
-	i2cReadStatus                   = readSensorRegisterINA219(kWarpSensorOutputRegisterINA219Humidity, 2 /* numberOfBytes */);
+	i2cReadStatus                   = readSensorRegisterINA219(kWarpSensorOutputRegisterINA219BUS_VOLTAGE, 2 /* numberOfBytes */);
 	readSensorRegisterValueMSB      = deviceINA219State.i2cBuffer[0];
 	readSensorRegisterValueLSB      = deviceINA219State.i2cBuffer[1];
 	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 8) | (readSensorRegisterValueLSB & 0xFF);
@@ -357,7 +470,73 @@ appendSensorDataINA219(uint8_t* buf)
 	}
 	else
 	{
-		readSensorRegisterValueCombined = (readSensorRegisterValueCombined * 100 / (1u << 16));
+		readSensorRegisterValueCombined = ((readSensorRegisterValueCombined & 0xFF)>>3);
+		/*
+		 * MSB first
+		 */
+		buf[index] = (uint8_t)(readSensorRegisterValueCombined >> 8);
+		index += 1;
+
+		buf[index] = (uint8_t)(readSensorRegisterValueCombined);
+		index += 1;
+	}
+
+	i2cReadStatus                   = readSensorRegisterINA219(kWarpSensorOutputRegisterINA219POWER, 2 /* numberOfBytes */);
+	readSensorRegisterValueMSB      = deviceINA219State.i2cBuffer[0];
+	readSensorRegisterValueLSB      = deviceINA219State.i2cBuffer[1];
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 8) | (readSensorRegisterValueLSB & 0xFF);
+
+	/*
+	 *	NOTE: Here, we don't need to manually sign extend since we are packing directly into an int16_t
+	 */
+
+	if (i2cReadStatus != kWarpStatusOK)
+	{
+		buf[index] = 0;
+		index += 1;
+
+		buf[index] = 0;
+		index += 1;
+	}
+	else
+	{
+
+		readSensorRegisterValueCombined = (readSensorRegisterValueCombined);
+		
+
+		/*
+		 * MSB first
+		 */
+		buf[index] = (uint8_t)(readSensorRegisterValueCombined >> 8);
+		index += 1;
+
+		buf[index] = (uint8_t)(readSensorRegisterValueCombined);
+		index += 1;
+	}
+
+	i2cReadStatus                   = readSensorRegisterINA219(kWarpSensorOutputRegisterINA219CURRENT, 2 /* numberOfBytes */);
+	readSensorRegisterValueMSB      = deviceINA219State.i2cBuffer[0];
+	readSensorRegisterValueLSB      = deviceINA219State.i2cBuffer[1];
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 8) | (readSensorRegisterValueLSB & 0xFF);
+
+	/*
+	 *	NOTE: Here, we don't need to manually sign extend since we are packing directly into an int16_t
+	 */
+
+	if (i2cReadStatus != kWarpStatusOK)
+	{
+		buf[index] = 0;
+		index += 1;
+
+		buf[index] = 0;
+		index += 1;
+	}
+	else
+	{
+
+		readSensorRegisterValueCombined = (readSensorRegisterValueCombined);
+		
+
 		/*
 		 * MSB first
 		 */
