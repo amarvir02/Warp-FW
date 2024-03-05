@@ -23,7 +23,7 @@
  *	PTB1/IRQ_6					ADC0_SE8	DEFAULT
  *	PTB2/IRQ_7					VREF_OUT	ALT1
  *	PTB3/IRQ_10					DISABLED	ALT2
- *	PTB4/IRQ_11					DISABLED	ALT2
+ *	PTB4/IRQ_11					DISABLED	ALT2  --> I2C will work
  *	PTB5/IRQ_12					NMI_b		ALT1
   *	PTB6						DISABLED	ALT1
  *	PTB7						DISABLED	ALT1
@@ -77,11 +77,15 @@ enum _gpio_pins
 	#endif
 
 	#if (WARP_BUILD_ENABLE_FRDMKL03)
+	// Are I2C Pins set by default?
+	// counted as "Not GPIO" as per gpio_pins.c
 		kSSD1331PinRST				= GPIO_MAKE_PIN(HW_GPIOB, 0),
 		kWarpPinUnusedPTB1			= GPIO_MAKE_PIN(HW_GPIOB, 1),
 		kWarpPinUnusedPTB2			= GPIO_MAKE_PIN(HW_GPIOB, 2),
 		kWarpPinUnusedPTB3			= GPIO_MAKE_PIN(HW_GPIOB, 3),
 		kWarpPinUnusedPTB4			= GPIO_MAKE_PIN(HW_GPIOB, 4),
+		//kWarpPinI2C0_SCL			= GPIO_MAKE_PIN(HW_GPIOB, 3),
+		//kWarpPinI2C0_SDA			= GPIO_MAKE_PIN(HW_GPIOB, 4),
 		kWarpPinUnusedPTB5			= GPIO_MAKE_PIN(HW_GPIOB, 5),
 		kWarpPinUnusedPTB6			= GPIO_MAKE_PIN(HW_GPIOB, 6),
 		kWarpPinUnusedPTB7			= GPIO_MAKE_PIN(HW_GPIOB, 7),
@@ -92,8 +96,8 @@ enum _gpio_pins
 		//kWarpPinUnusedPTA0			= GPIO_MAKE_PIN(HW_GPIOA, 0),
 		//kWarpPinUnusedPTA1			= GPIO_MAKE_PIN(HW_GPIOA, 1),
 		//kWarpPinUnusedPTA2			= GPIO_MAKE_PIN(HW_GPIOA, 2),
-		kWarpPinI2C0_SCL			= GPIO_MAKE_PIN(HW_GPIOA, 3),
-		kWarpPinI2C_SDA				= GPIO_MAKE_PIN(HW_GPIOA, 4),
+		kWarpPinUnusedPTA3			= GPIO_MAKE_PIN(HW_GPIOA, 3),
+		kWarpPinUnusedPTA4			= GPIO_MAKE_PIN(HW_GPIOA, 4),
 		kWarpPinUnusedPTA5			= GPIO_MAKE_PIN(HW_GPIOA, 5),
 		kWarpPinUnusedPTA6			= GPIO_MAKE_PIN(HW_GPIOA, 6),
 		kWarpPinUnusedPTA7			= GPIO_MAKE_PIN(HW_GPIOA, 7),

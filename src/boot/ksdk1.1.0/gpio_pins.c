@@ -201,6 +201,20 @@ gpio_output_pin_user_config_t	outputPins[] = {
 			.config.slewRate = kPortSlowSlewRate,
 			.config.driveStrength = kPortLowDriveStrength,
 	},
+
+	//{
+	//	.pinName = kWarpPinI2C0_SCL,
+	//		.config.outputLogic = 1,
+	//		.config.slewRate = kPortSlowSlewRate,
+	//		.config.driveStrength = kPortLowDriveStrength,
+	//},
+//
+	//{
+	//	.pinName = kWarpPinI2C0_SDA,
+	//		.config.outputLogic = 1,
+	//		.config.slewRate = kPortSlowSlewRate,
+	//		.config.driveStrength = kPortLowDriveStrength,
+	//},
 	# endif
 	{
 		.pinName = GPIO_PINS_OUT_OF_RANGE,

@@ -94,7 +94,7 @@ initINA219(const uint8_t i2cAddress, uint16_t operatingVoltageMillivolts)
 WarpStatus
 writeSensorRegisterINA219(uint8_t deviceRegister, uint16_t payload)
 {
-	uint8_t		payloadByte[2], commandByte[1];
+	uint8_t		payloadByte[2], cmdBuf[1];
 	i2c_status_t	returnValue;
 
 	switch (deviceRegister)
@@ -118,19 +118,20 @@ writeSensorRegisterINA219(uint8_t deviceRegister, uint16_t payload)
 
 	warpScaleSupplyVoltage(deviceINA219State.operatingVoltageMillivolts);
 	warpEnableI2Cpins();
-	commandByte[0] = deviceRegister;
+	cmdBuf[0] = deviceRegister;
 	payloadByte[0] = (payload >> 8) & 0xFF; /* MSB first */
 	payloadByte[1] = payload & 0xFF;        /* LSB */
 	returnValue    = I2C_DRV_MasterSendDataBlocking(
 		0 /* I2C instance */,
 		&slave,
-		commandByte,
+		cmdBuf,
 		1,
 		payloadByte,
 		2,
 		gWarpI2cTimeoutMilliseconds);
 	if (returnValue != kStatus_I2C_Success)
 	{
+		warpPrint("I'm the INA219 read fucntion. I have failed\n");
 		return kWarpStatusDeviceCommunicationFailed;
 	}
 
@@ -143,7 +144,7 @@ since read cmd checks the last register pointer*/
 WarpStatus
 readSensorRegisterINA219(uint8_t deviceRegister, int numberOfBytes)
 {
-	uint8_t cmdBuf[1] = {0xFF};
+	uint8_t cmdBuf[1];
 	i2c_status_t status; //status2;
 	warpPrint("READING REGISTERS");
 

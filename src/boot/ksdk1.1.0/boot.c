@@ -3829,7 +3829,7 @@ loopForSensor(	const char *  tagString,
 				}
 				else if (status == kWarpStatusDeviceCommunicationFailed)
 				{
-				warpPrint("\nwoof woof woof -- kWarpStatusDeviceCommunicationFailed\n");#
+				warpPrint("\nwoof woof woof -- kWarpStatusDeviceCommunicationFailed\n");
 				//, so kWarpStatus is NOT OKAY
 				// what do??
 				// having to use print msgs to debug this program is stupid
