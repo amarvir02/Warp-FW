@@ -1679,7 +1679,7 @@ main(void)
 
 // This guy supports 0x40 through to 0x55 (16 addresses) depending on what you wire up to A0 and A1
 #if (WARP_BUILD_ENABLE_DEVINA219)
-		initMMA8451Q(	0x40	/* i2cAddress */,	kWarpDefaultSupplyVoltageMillivoltsINA219	);
+		initINA219(	0x40	/* i2cAddress */,	kWarpDefaultSupplyVoltageMillivoltsINA219	);
 #endif
 
 #if (WARP_BUILD_ENABLE_DEVBMX055)
@@ -3829,6 +3829,10 @@ loopForSensor(	const char *  tagString,
 				}
 				else if (status == kWarpStatusDeviceCommunicationFailed)
 				{
+				warpPrint("\nwoof woof woof -- kWarpStatusDeviceCommunicationFailed\n");#
+				//, so kWarpStatus is NOT OKAY
+				// what do??
+				// having to use print msgs to debug this program is stupid
 				warpPrint("\r\t0x%02x --> ----\n",
 					address+j);
 

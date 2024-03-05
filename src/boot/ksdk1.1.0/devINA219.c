@@ -180,6 +180,7 @@ readSensorRegisterINA219(uint8_t deviceRegister, int numberOfBytes)
 			numberOfBytes,
 			gWarpI2cTimeoutMilliseconds);
 
+		//currently here, why...
 		if (status != kStatus_I2C_Success)
 		{
 			return kWarpStatusDeviceCommunicationFailed;
@@ -412,7 +413,8 @@ appendSensorDataINA219(uint8_t* buf)
 		buf[index] = (uint8_t)(readSensorRegisterValueCombined);
 		index += 1;
 	}
-
+	// WHY IS readSensorRegisterValueMSB defined as uint16_t
+	// It's a 8b value
 	i2cReadStatus                   = readSensorRegisterINA219(INA219_REG_POWER, 2 /* numberOfBytes */);
 	readSensorRegisterValueMSB      = deviceINA219State.i2cBuffer[0];
 	readSensorRegisterValueLSB      = deviceINA219State.i2cBuffer[1];
@@ -467,8 +469,6 @@ appendSensorDataINA219(uint8_t* buf)
 	{
 
 		readSensorRegisterValueCombined = (readSensorRegisterValueCombined);
-		
-
 		/*
 		 * MSB first
 		 */
