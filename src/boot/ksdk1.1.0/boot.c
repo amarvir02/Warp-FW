@@ -1228,6 +1228,8 @@ printBootSplash(uint16_t gWarpCurrentSupplyVoltage, uint8_t menuRegisterAddress,
 	 */
 	warpPrint("\r\n\n\n\n[ *\t\t\t\tWarp (HW revision C) / Glaux (HW revision B)\t\t\t* ]\n");
 	warpPrint("\r[  \t\t\t\t      Cambridge / Physcomplab   \t\t\t\t  ]\n\n");
+	// how do I chang to 0x40
+	// cant
 	warpPrint("\r\tSupply=%dmV,\tDefault Target Read Register=0x%02x\n",
 			  gWarpCurrentSupplyVoltage, menuRegisterAddress);
 	warpPrint("\r\tI2C=%dkb/s,\tSPI=%dkb/s,\tUART=%db/s,\tI2C Pull-Up=%d\n\n",
@@ -1931,16 +1933,27 @@ main(void)
 	int timer  = 0;
 	int rttKey = -1;
 
-	bool _originalWarpExtraQuietMode = gWarpExtraQuietMode;
-	gWarpExtraQuietMode = false;
-	warpPrint("Press any key to show menu...\n");
-	gWarpExtraQuietMode = _originalWarpExtraQuietMode;
 
 // if doing make frdm, then run the oled as green, and maybe we can get current display here 
 #if(WARP_BUILD_ENABLE_FRDMKL03)
     warpPrint("THIS IS WARP PRINT INITIIALISING THE OLED");
     devSSD1331init();
+	initINA219(0x40, 1800);
+	int16_t busvoltage;
+	for (int i=0; i<69; i++)
+	{
+		 //0x40, 1800
+		busvoltage = gimmeBusVoltage_raw_INA219();
+		printSensorDataINA219(true);
+		warpPrint("%f\n", busvoltage);
+	}
 #endif	
+
+	bool _originalWarpExtraQuietMode = gWarpExtraQuietMode;
+	gWarpExtraQuietMode = false;
+	warpPrint("Press any key to show menu...\n");
+	gWarpExtraQuietMode = _originalWarpExtraQuietMode;
+
 
 	while (rttKey < 0 && timer < kWarpCsvstreamMenuWaitTimeMilliSeconds)
 	{
@@ -3747,11 +3760,11 @@ loopForSensor(	const char *  tagString,
 {
 	WarpStatus		status;
 	uint8_t			address = min(minAddress, baseAddress);
-	int			readCount = repetitionsPerAddress + 1;
-	int			nSuccesses = 0;
-	int			nFailures = 0;
-	int			nCorrects = 0;
-	int			nBadCommands = 0;
+	int				readCount = repetitionsPerAddress + 1;
+	int				nSuccesses = 0;
+	int				nFailures = 0;
+	int				nCorrects = 0;
+	int				nBadCommands = 0;
 	uint16_t		actualSssupplyMillivolts = sssupplyMillivolts;
 
 

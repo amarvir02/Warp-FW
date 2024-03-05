@@ -35,6 +35,8 @@
 	ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 	POSSIBILITY OF SUCH DAMAGE.
 */
+#include <stdint.h>
+//#include <warp.h>
 
 void		initINA219(const uint8_t i2cAddress, uint16_t operatingVoltageMillivolts);
 WarpStatus	writeSensorRegisterINA219(uint8_t deviceRegister, uint16_t payload);
@@ -49,19 +51,48 @@ const uint8_t numberOfReadingsPerMeasurementINA219 = 4;
 // Using the adafruit library/driver
 
 // no need for address calc since we know it's 0x40 anyways 
+/** default I2C address **/
 
+////#define INA219_ADDRESS (0x40) // 1000000 (A0+A1=GND)
+
+/** read **/
+////#define INA219_READ (0x01)
 /*=========================================================================
     CONFIG REGISTER (R/W)
 **************************************************************************/
+// preprocessor/compiler can't see the defines for w/e reason, so enum it?
 
+// enum don't work, so declare in c file???
+//
 /** config register address **/
-#define INA219_REG_CONFIG (0x00)
 
-/** reset bit **/
-#define INA219_CONFIG_RESET (0x8000) // Reset Bit
+//enum
+//{
+//    ,
+//
+//    /** shunt voltage register **/
+//    INA219_REG_SHUNTVOLTAGE = (0x01),
+//
+//    /** bus voltage register **/
+//    INA219_REG_BUSVOLTAGE = (0x02),
+//
+//    /** power register **/
+//    INA219_REG_POWER = (0x03),
+//
+//    /** current register **/
+//    INA219_REG_CURRENT = (0x04),
+//
+//    /** calibration register **/
+//    INA219_REG_CALIBRATION = (0x05),
+//
+//    /** reset bit **/
+//    INA219_CONFIG_RESET = (0x8000), // Reset Bit
+//
+//    /** mask for bus voltage range **/
+//    INA219_CONFIG_BVOLTAGERANGE_MASK = (0x2000),// Bus Voltage Range Mask
+//};
 
-/** mask for bus voltage range **/
-#define INA219_CONFIG_BVOLTAGERANGE_MASK (0x2000) // Bus Voltage Range Mask
+
 
 /** bus voltage range values **/
 enum
@@ -137,18 +168,3 @@ enum
     INA219_CONFIG_MODE_BVOLT_CONTINUOUS =       0x06, /**< bus voltage continuous */
     INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS =   0x07, /**< shunt and bus voltage continuous */
 };
-
-/** shunt voltage register **/
-#define INA219_REG_SHUNTVOLTAGE (0x01)
-
-/** bus voltage register **/
-#define INA219_REG_BUSVOLTAGE (0x02)
-
-/** power register **/
-#define INA219_REG_POWER (0x03)
-
-/** current register **/
-#define INA219_REG_CURRENT (0x04)
-
-/** calibration register **/
-#define INA219_REG_CALIBRATION (0x05)
