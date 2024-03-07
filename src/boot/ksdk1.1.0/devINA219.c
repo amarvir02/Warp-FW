@@ -204,6 +204,13 @@ printSensorDataINA219(bool hexModeFlag)
 	float 		mypower;
 	float 		mycurrent;
 	
+	int16_t value;
+
+	//needed for power and current o/p
+	int16_t current_div;
+	int16_t power_mul = 20*current_div; 
+
+
 	WarpStatus	i2cReadStatus;
 
 	warpScaleSupplyVoltage(deviceINA219State.operatingVoltageMillivolts);
@@ -216,6 +223,34 @@ printSensorDataINA219(bool hexModeFlag)
 	warpScaleSupplyVoltage(deviceINA219State.operatingVoltageMillivolts);
 	// read and print probably incompatible due to calling different macros even if they have the same hex values
 	// use same macros???
+	i2cReadStatus = readSensorRegisterINA219(INA219_REG_CONFIG, 2 /* numberOfBytes */);
+	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
+	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB) << 8) | (readSensorRegisterValueLSB & 0xFF);
+
+	/*
+	 *	NOTE: Here, we don't need to manually sign extend since we are packing directly into an int16_t
+	 */
+
+	if (i2cReadStatus != kWarpStatusOK)
+	{
+		warpPrint(" ----,");
+	}
+	else
+	{
+		if (hexModeFlag)
+		{
+			warpPrint(" 0x%02x 0x%02x,", readSensorRegisterValueMSB, readSensorRegisterValueLSB);
+		}
+		else
+		{
+			//myshuntvoltage = readSensorRegisterValueCombined;
+			warpPrint(" %x,", readSensorRegisterValueCombined );
+			//warpPrint(" %f,", (myshuntvoltage/(100) ));
+		}
+	}
+
+
 	i2cReadStatus = readSensorRegisterINA219(INA219_REG_SHUNTVOLTAGE, 2 /* numberOfBytes */);
 	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
 	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
@@ -237,19 +272,11 @@ printSensorDataINA219(bool hexModeFlag)
 		}
 		else
 		{
-			/*
-			 *	So we do some conversion on this to give a number as output rather than some 0s and 1s
-			 *	Reverse the process described in the manual
-			 * 
-			 * 	The leading bit is sign
-			 * 	The number you have in the register is an actual value that's mul'ed by x100
-			 * 	to give you 2dp precision.
-			 * 	
-			 * 	
-			 */
-			myshuntvoltage = readSensorRegisterValueCombined;
-			warpPrint(" %f,", readSensorRegisterValueCombined );
-			//warpPrint(" %f,", (myshuntvoltage/(100) ));
+			// the value is internally multiplied by 100, so reverse this (optional)
+			// this is in mV
+			myshuntvoltage = (readSensorRegisterValueCombined)*0.01;
+			//warpPrint(" %d,", readSensorRegisterValueCombined );
+			warpPrint(" %d,", (myshuntvoltage));
 		}
 	}
 
@@ -274,12 +301,11 @@ printSensorDataINA219(bool hexModeFlag)
 		}
 		else
 		{
-			/*
-			 *	See Section 8.6.2 of the INA219 manual for the conversion to temperature.
-			 */
-			readSensorRegisterValueCombined = ((readSensorRegisterValueCombined & 0xFF)>>3);
-			mybusvoltage = readSensorRegisterValueCombined;
-			warpPrint(" %f,", mybusvoltage);
+			// bit shift by 3, multiply out by VBUS LSB (4mV), then convert to V (optional)
+			mybusvoltage = ((readSensorRegisterValueCombined>>3)*4)/**0.001*/ ;
+			//readSensorRegisterValueCombined;
+			//warpPrint(" %d,", readSensorRegisterValueCombined );
+			warpPrint(" %d,", (myshuntvoltage));
 		}
 	}
 
@@ -305,8 +331,8 @@ printSensorDataINA219(bool hexModeFlag)
 			/*
 			 *	See Section 8.6.2 of the INA219 manual for the conversion to temperature.
 			 */
-			mypower = readSensorRegisterValueCombined;
-			warpPrint(" %f,", (mypower));
+			mypower = readSensorRegisterValueCombined*power_mul;
+			warpPrint(" %d,", (mypower));
 		}
 	}
 
@@ -335,8 +361,8 @@ printSensorDataINA219(bool hexModeFlag)
 			 *	See Section 8.6.2 of the INA219 manual for the conversion to temperature.
 			 */
 
-			mycurrent = readSensorRegisterValueCombined;
-			warpPrint(" %f,", (mycurrent));
+			mycurrent = (readSensorRegisterValueCombined)/current_div;
+			warpPrint(" %f,", (readSensorRegisterValueCombined));
 		}
 	}
 }
@@ -488,6 +514,7 @@ appendSensorDataINA219(uint8_t* buf)
 
 
 // when placing warpPrint inside here it doesn't want to print out for some reason.
+// And yes, I still had it return the correct type.
 int16_t getBusVoltageINA219(void)
 {
     uint16_t value;
@@ -504,7 +531,10 @@ int16_t getBusVoltageINA219(void)
 	return value;
 }
 
-
+//-----------------------------------------------------------------------------------------------------------------------------------
+// Use the 32V_1A setting for config from adafruit library - voltage range on VBUS doesn't seem to matter as per datasheet.
+// LSB of VBUS is 4mV
+// Current 1A bc idk what coud current be. 
 
 ///*!
 // *  @brief  Gets the raw bus voltage (16-bit signed integer, so +-32767)

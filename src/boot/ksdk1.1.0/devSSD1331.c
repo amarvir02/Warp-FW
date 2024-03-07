@@ -193,12 +193,12 @@ devSSD1331init(void)
     writeCommand(0x5F); // end col
     writeCommand(0x3F); // end row
    
-    writeCommand(0x00); 
-    writeCommand(0x3F); // setting border
+    writeCommand(0b11111); 
+    writeCommand(0x00); // setting border
     writeCommand(0x00);
     
-    writeCommand(0x00);
-    writeCommand(0x3F); // setting fill
+    writeCommand(0b11111);
+    writeCommand(0x00); // setting fill
     writeCommand(0x00);
 
     SEGGER_RTT_WriteString(0, "\r\n\tRectangle should be shaded by now\n");

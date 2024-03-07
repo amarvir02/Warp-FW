@@ -1934,7 +1934,7 @@ main(void)
 	bool _originalWarpExtraQuietMode = gWarpExtraQuietMode;
 	gWarpExtraQuietMode = false;
 
-// if doing make frdm, then run the oled as green, and maybe we can get current display here 
+
 # if(WARP_BUILD_ENABLE_FRDMKL03)
     warpPrint("\nTHIS IS WARP PRINT INITIIALISING THE OLED");
 	initINA219(0x40, kWarpDefaultSupplyVoltageMillivoltsINA219);
@@ -1943,20 +1943,52 @@ main(void)
 	printSensorDataINA219(false);
 	warpPrint("%d\n", busvoltage);
     devSSD1331init();
-	//let display iniitialise
 	OSA_TimeDelay(500);
 	//int16_t busvoltage;
-	//int16_t busvoltage;
+	bool	autoIncrement, chatty;
+	int		spinDelay, repetitionsPerAddress, chunkReadsPerAddress;
+	int		adaptiveSssupplyMaxMillivolts;
+	uint8_t		referenceByte;
+	
 	for (int i=0; i<69; i++)
 	{
 		 //0x40, 1800
-		busvoltage = getBusVoltageINA219();
+		//busvoltage = getBusVoltageINA219();
 		// why does it work now
 		printSensorDataINA219(false);
-		// bus voltage should be ~ 5V??
-		warpPrint("%f\n", busvoltage);
+		
+		warpPrint("%d\n", busvoltage);
 	}
 # endif	
+
+
+// if doing make frdm, then run the oled as green, and maybe we can get current display here 
+//# if(WARP_BUILD_ENABLE_FRDMKL03)
+//    warpPrint("\nTHIS IS WARP PRINT INITIIALISING THE OLED AND CURRENT SENSE\n");
+//	initINA219(0x40, kWarpDefaultSupplyVoltageMillivoltsINA219);
+//	int16_t busvoltage = getBusVoltageINA219();
+//	// having current sensor code before oled lit up is bad idea
+//	OSA_TimeDelay(500);
+//	//4096 is 0x1000
+//	writeSensorRegisterINA219(0x00, 0x399F);
+//	writeSensorRegisterINA219(0x05, 10240);
+//	OSA_TimeDelay(500);
+//	printSensorDataINA219(true);
+//	warpPrint("%d\n", busvoltage);
+//    devSSD1331init();
+//	//let display iniitialise
+//	OSA_TimeDelay(500);
+//	//int16_t busvoltage;
+//	//int16_t busvoltage;
+//	for (int i=0; i<1000; i++)
+//	{
+//		 //0x40, 1800 - reg and default voltage
+//		busvoltage = getBusVoltageINA219();
+//		printSensorDataINA219(false);
+//		// bus voltage should be ~ 5V
+//		warpPrint("%d\n", busvoltage);
+//	}
+//# endif	
 
 
 	warpPrint("Press any key to show menu...\n");
@@ -2387,8 +2419,9 @@ main(void)
 						menuTargetSensor = kWarpSensorINA219;
 						menuI2cDevice = &deviceINA219State;
 						// WRITE SENSOR REGS
-						//writeSensorRegisterINA219(0X00, 0x019F);
-						writeSensorRegisterINA219(0X05, 4096);
+						//writeSensorRegisterINA219(0X00, 0x399F);
+						//4096 is 0x1000
+						//writeSensorRegisterINA219(0X05, 4096);
 						break;
 					}
 #endif
@@ -3834,7 +3867,7 @@ loopForSensor(	const char *  tagString,
 
 						if (chatty)
 						{
-						warpPrint("\r\t%02d , %02d\n", //was prev %02d%02d\n on the second entry
+						warpPrint("\r\t%02d , %02d%02d\n", //was prev %02d%02d\n on the second entry
 							address+j,
 									  i2cDeviceState->i2cBuffer[0],
 									  i2cDeviceState->i2cBuffer[1]);
