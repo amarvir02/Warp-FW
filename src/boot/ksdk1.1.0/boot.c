@@ -1925,32 +1925,40 @@ main(void)
 	gWarpBooted = true;
 	warpPrint("Boot done.\n");
 
+//if direactives can be nested
 
 #if (!WARP_BUILD_ENABLE_GLAUX_VARIANT && WARP_BUILD_BOOT_TO_CSVSTREAM)
 	
-
-	
 	int timer  = 0;
 	int rttKey = -1;
-
+	bool _originalWarpExtraQuietMode = gWarpExtraQuietMode;
+	gWarpExtraQuietMode = false;
 
 // if doing make frdm, then run the oled as green, and maybe we can get current display here 
-#if(WARP_BUILD_ENABLE_FRDMKL03)
-    warpPrint("THIS IS WARP PRINT INITIIALISING THE OLED");
+# if(WARP_BUILD_ENABLE_FRDMKL03)
+    warpPrint("\nTHIS IS WARP PRINT INITIIALISING THE OLED");
+	initINA219(0x40, kWarpDefaultSupplyVoltageMillivoltsINA219);
+	int16_t busvoltage = getBusVoltageINA219();
+	// having current sensor code before oled lit up is bad idea
+	printSensorDataINA219(false);
+	warpPrint("%d\n", busvoltage);
     devSSD1331init();
-	initINA219(0x40, 1800);
-	int16_t busvoltage;
+	//let display iniitialise
+	OSA_TimeDelay(500);
+	//int16_t busvoltage;
+	//int16_t busvoltage;
 	for (int i=0; i<69; i++)
 	{
 		 //0x40, 1800
-		busvoltage = gimmeBusVoltage_raw_INA219();
-		printSensorDataINA219(true);
+		busvoltage = getBusVoltageINA219();
+		// why does it work now
+		printSensorDataINA219(false);
+		// bus voltage should be ~ 5V??
 		warpPrint("%f\n", busvoltage);
 	}
-#endif	
+# endif	
 
-	bool _originalWarpExtraQuietMode = gWarpExtraQuietMode;
-	gWarpExtraQuietMode = false;
+
 	warpPrint("Press any key to show menu...\n");
 	gWarpExtraQuietMode = _originalWarpExtraQuietMode;
 
@@ -2380,7 +2388,7 @@ main(void)
 						menuI2cDevice = &deviceINA219State;
 						// WRITE SENSOR REGS
 						//writeSensorRegisterINA219(0X00, 0x019F);
-						//writeSensorRegisterINA219(0X05, 0x02000);
+						writeSensorRegisterINA219(0X05, 4096);
 						break;
 					}
 #endif
@@ -2558,10 +2566,13 @@ main(void)
 			 */
 			case 'j':
 			{
-				bool		autoIncrement, chatty;
+				bool	autoIncrement, chatty;
 				int		spinDelay, repetitionsPerAddress, chunkReadsPerAddress;
 				int		adaptiveSssupplyMaxMillivolts;
-				uint8_t		referenceByte;
+				uint8_t	referenceByte;
+				int 	count=0;
+
+				printSensorDataINA219(true);
 
 				warpPrint("\r\n\tAuto-increment from base address 0x%02x? ['0' | '1']> ", menuRegisterAddress);
 				autoIncrement = warpWaitKey() - '0';
@@ -2586,8 +2597,10 @@ main(void)
 
 				warpPrint("\r\n\tRepeating dev%d @ 0x%02x, reps=%d, pull=%d, delay=%dms:\n\n",
 					menuTargetSensor, menuRegisterAddress, repetitionsPerAddress, spinDelay);
-
-				repeatRegisterReadForDeviceAndAddress(	menuTargetSensor /*warpSensorDevice*/,
+				for(count; count<60; count++)
+				{
+				repeatRegisterReadForDeviceAndAddress(	
+									menuTargetSensor /*warpSensorDevice*/,
 									menuRegisterAddress /*baseAddress */,
 									autoIncrement /*autoIncrement*/,
 									chunkReadsPerAddress,
@@ -2598,6 +2611,7 @@ main(void)
 									adaptiveSssupplyMaxMillivolts,
 									referenceByte
 								);
+				};
 
 				break;
 			}
@@ -3820,7 +3834,7 @@ loopForSensor(	const char *  tagString,
 
 						if (chatty)
 						{
-						warpPrint("\r\t0x%02x --> 0x%02x%02x\n",
+						warpPrint("\r\t%02d , %02d\n", //was prev %02d%02d\n on the second entry
 							address+j,
 									  i2cDeviceState->i2cBuffer[0],
 									  i2cDeviceState->i2cBuffer[1]);
@@ -3830,9 +3844,9 @@ loopForSensor(	const char *  tagString,
 				else if (status == kWarpStatusDeviceCommunicationFailed)
 				{
 				warpPrint("\nwoof woof woof -- kWarpStatusDeviceCommunicationFailed\n");
-				//, so kWarpStatus is NOT OKAY
-				// what do??
-				// having to use print msgs to debug this program is stupid
+				//
+
+
 				warpPrint("\r\t0x%02x --> ----\n",
 					address+j);
 
@@ -3873,11 +3887,12 @@ loopForSensor(	const char *  tagString,
 	 *	We intersperse RTT_printfs with forced delays to allow us to use small
 	 *	print buffers even in RUN mode.
 	 */
-	warpPrint("\r\n\t%d/%d success rate.\n", nSuccesses, (nSuccesses + nFailures));
+	//!!
+	//warpPrint("\r\n\t%d/%d success rate.\n", nSuccesses, (nSuccesses + nFailures));
 	OSA_TimeDelay(50);
-	warpPrint("\r\t%d/%d successes matched ref. value of 0x%02x.\n", nCorrects, nSuccesses, referenceByte);
+	//warpPrint("\r\t%d/%d successes matched ref. value of 0x%02x.\n", nCorrects, nSuccesses, referenceByte);
 	OSA_TimeDelay(50);
-	warpPrint("\r\t%d bad commands.\n\n", nBadCommands);
+	//warpPrint("\r\t%d bad commands.\n\n", nBadCommands);
 	OSA_TimeDelay(50);
 
 	return;
@@ -4379,27 +4394,27 @@ repeatRegisterReadForDeviceAndAddress(WarpSensorDevice warpSensorDevice, uint8_t
 #endif
 			break;
 		}
-//
-//#if (WARP_BUILD_ENABLE_DEVMMA8451Q)
-//				loopForSensor(	"\r\nMMA8451Q:\n\r",		/*	tagString			*/
-//						&readSensorRegisterMMA8451Q,	/*	readSensorRegisterFunction	*/
-//						&deviceMMA8451QState,		/*	i2cDeviceState			*/
-//						NULL,				/*	spiDeviceState			*/
-//						baseAddress,			/*	baseAddress			*/
-//						0x00,				/*	minAddress			*/
-//						0x31,				/*	maxAddress			*/
-//						repetitionsPerAddress,		/*	repetitionsPerAddress		*/
-//						chunkReadsPerAddress,		/*	chunkReadsPerAddress		*/
-//						spinDelay,			/*	spinDelay			*/
-//						autoIncrement,			/*	autoIncrement			*/
-//						sssupplyMillivolts,		/*	sssupplyMillivolts		*/
-//						referenceByte,			/*	referenceByte			*/
-//						adaptiveSssupplyMaxMillivolts,	/*	adaptiveSssupplyMaxMillivolts	*/
-//						chatty				/*	chatty				*/
-//			);
-//#else
-//			warpPrint("\r\n\tMMA8451Q Read Aborted. Device Disabled :(");
-//#endif
+
+#if (WARP_BUILD_ENABLE_DEVMMA8451Q)
+				loopForSensor(	"\r\nMMA8451Q:\n\r",		/*	tagString			*/
+						&readSensorRegisterMMA8451Q,	/*	readSensorRegisterFunction	*/
+						&deviceMMA8451QState,		/*	i2cDeviceState			*/
+						NULL,				/*	spiDeviceState			*/
+						baseAddress,			/*	baseAddress			*/
+						0x00,				/*	minAddress			*/
+						0x31,				/*	maxAddress			*/
+						repetitionsPerAddress,		/*	repetitionsPerAddress		*/
+						chunkReadsPerAddress,		/*	chunkReadsPerAddress		*/
+						spinDelay,			/*	spinDelay			*/
+						autoIncrement,			/*	autoIncrement			*/
+						sssupplyMillivolts,		/*	sssupplyMillivolts		*/
+						referenceByte,			/*	referenceByte			*/
+						adaptiveSssupplyMaxMillivolts,	/*	adaptiveSssupplyMaxMillivolts	*/
+						chatty				/*	chatty				*/
+			);
+#else
+			warpPrint("\r\n\tMMA8451Q Read Aborted. Device Disabled :(");
+#endif
 		case kWarpSensorINA219:
 		{
 /*
