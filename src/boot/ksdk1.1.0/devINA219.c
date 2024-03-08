@@ -67,10 +67,10 @@ extern volatile uint32_t		gWarpSupplySettlingDelayMilliseconds;
 
 
 int16_t		myshuntvoltage;
-//float 		myshuntvoltage;
 int16_t		mybusvoltage;
 int32_t		mypower;
 int32_t 	mycurrent;
+// no want overflow
 
 int16_t value;
 
@@ -347,7 +347,7 @@ printSensorDataINA219(bool hexModeFlag)
 			warpPrint(" %x,", readSensorRegisterValueCombined);
 		}
 	}
-
+//!! SHUNT VOLTAGE
 	i2cReadStatus = readSensorRegisterINA219(INA219_REG_SHUNTVOLTAGE, 2 /* numberOfBytes */);
 	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
 	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
@@ -368,20 +368,11 @@ printSensorDataINA219(bool hexModeFlag)
 			// the value is internally multiplied by 100, so reverse this (optional)
 			//// LSB is 10 uV
 			//myshuntvoltage = (float)(readSensorRegisterValueCombined*0.01);
-
 			warpPrint("%d,", (int16_t)readSensorRegisterValueCombined*10);
-			
-			//// Printing as floats - not necessary
-			//// Takes value in 10s of uV, and converts to millivolts.
-			//myshuntvoltage = (float)readSensorRegisterValueCombined*0.01;
-			//const char buffer[20];
-			//int sprintf(buffer, myshuntvoltage);
-			//// Takes args BufferIndex and const char *str
-			//SEGGER_RTT_WriteString(0, buffer);
 
 		}
 	}
-
+//!! BUS VOLTAGE
 	i2cReadStatus = readSensorRegisterINA219(INA219_REG_BUSVOLTAGE, 2 /* numberOfBytes */);
 	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
 	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
@@ -404,7 +395,7 @@ printSensorDataINA219(bool hexModeFlag)
 			warpPrint("%d,", shifty*4);
 		}
 	}
-
+//!! POWER
 	i2cReadStatus = readSensorRegisterINA219(INA219_REG_POWER, 2 /* numberOfBytes */);
 	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
 	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
@@ -424,11 +415,11 @@ printSensorDataINA219(bool hexModeFlag)
 		{
 			mypower = (float)readSensorRegisterValueCombined*power_LSB;
 			mypower = (int32_t)readSensorRegisterValueCombined*power_LSB;
-			//warpPrint("%d", (float)readSensorRegisterValueCombined*power_mul);
+	
 			warpPrint("%d,", mypower);
 		}
 	}
-
+//!! CURRENT 
 	i2cReadStatus = readSensorRegisterINA219(INA219_REG_CURRENT, 2 /* numberOfBytes */);
 	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
 	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
@@ -446,7 +437,7 @@ printSensorDataINA219(bool hexModeFlag)
 		}
 		else
 		{
-			mycurrent = (int32_t)readSensorRegisterValueCombined*current_LSB;
+			mycurrent = (int32_t)readSensorRegisterValueCombined*current_LSB; //I_LSB = 40960
 			//warpPrint(" %d,\n", (int)myshuntvoltage*50);
 			warpPrint(" %d,\n", mycurrent);
 			//warpPrint(" %d,", (mycurrent));
@@ -454,6 +445,144 @@ printSensorDataINA219(bool hexModeFlag)
 	}
 }
 //idc about append yet
+void
+printdecSensorDataINA219(bool hexModeFlag)
+{
+	uint16_t	readSensorRegisterValueLSB;
+	uint16_t	readSensorRegisterValueMSB;
+	int16_t		readSensorRegisterValueCombined;
+	WarpStatus	i2cReadStatus;
+	warpScaleSupplyVoltage(deviceINA219State.operatingVoltageMillivolts);
+
+	i2cReadStatus = readSensorRegisterINA219(INA219_REG_CONFIG, 2 /* numberOfBytes */);
+	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
+	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB) << 8) | (readSensorRegisterValueLSB & 0xFF);
+
+	if (i2cReadStatus != kWarpStatusOK)
+	{
+		warpPrint(" ----,");
+	}
+	else
+	{
+		if (hexModeFlag)
+		{
+			warpPrint(" 0x%02x 0x%02x,", readSensorRegisterValueMSB, readSensorRegisterValueLSB);
+		}
+		else
+		{
+			warpPrint(" %x,", readSensorRegisterValueCombined);
+		}
+	}
+//!! SHUNT VOLTAGE
+	i2cReadStatus = readSensorRegisterINA219(INA219_REG_SHUNTVOLTAGE, 2 /* numberOfBytes */);
+	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
+	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB) << 8) | (readSensorRegisterValueLSB & 0xFF);
+
+	if (i2cReadStatus != kWarpStatusOK)
+	{
+		warpPrint(" ----,");
+	}
+	else
+	{
+		if (hexModeFlag)
+		{
+			warpPrint(" 0x%02x 0x%02x,", readSensorRegisterValueMSB, readSensorRegisterValueLSB);
+		}
+		else
+		{
+			// the value is internally multiplied by 100, so reverse this (optional)
+
+			// Printing as floats - not necessary
+			// Takes value in 10s of uV, and converts to millivolts.
+			//myshuntvoltage = (float)readSensorRegisterValueCombined/100;
+			//const char buffer[20];
+			//int sprintf(buffer, myshuntvoltage);
+			//// Takes args BufferIndex and const char *str
+			//SEGGER_RTT_WriteString(0, buffer);
+
+			// Using fixed point?
+			int16_t quotient = readSensorRegisterValueCombined/100;
+			int16_t remainder = readSensorRegisterValueCombined%100;
+			warpPrint("%d.%d,", quotient, remainder);
+
+		}
+	}
+//!! BUS VOLTAGE
+	i2cReadStatus = readSensorRegisterINA219(INA219_REG_BUSVOLTAGE, 2 /* numberOfBytes */);
+	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
+	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB) << 8) | (readSensorRegisterValueLSB);
+
+	if (i2cReadStatus != kWarpStatusOK)
+	{
+		warpPrint(" ----,");
+	}
+	else
+	{
+		if (hexModeFlag)
+		{
+			warpPrint(" 0x%02x 0x%02x,", readSensorRegisterValueMSB, readSensorRegisterValueLSB);
+		}
+		else
+		{
+			// bit shift by 3, multiply out by VBUS LSB (4mV), then convert to V (optional)
+			int16_t shifty = (readSensorRegisterValueCombined>>3);
+			int32_t quotient = (readSensorRegisterValueCombined*4)/1000;
+			int32_t remainder = (readSensorRegisterValueCombined*4)%1000;
+			warpPrint("%d.%d,", quotient, remainder);
+
+		}
+	}
+//!! POWER
+	i2cReadStatus = readSensorRegisterINA219(INA219_REG_POWER, 2 /* numberOfBytes */);
+	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
+	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB) << 8) | (readSensorRegisterValueLSB & 0xFF);
+
+	if (i2cReadStatus != kWarpStatusOK)
+	{
+		warpPrint(" ----,");
+	}
+	else
+	{
+		if (hexModeFlag)
+		{
+			warpPrint(" 0x%02x 0x%02x,", readSensorRegisterValueMSB, readSensorRegisterValueLSB);
+		}
+		else
+		{
+			int32_t quotient = (readSensorRegisterValueCombined*power_LSB)/1000;
+			int32_t remainder = (readSensorRegisterValueCombined*power_LSB)%1000;
+			warpPrint("%d.%d,", quotient, remainder);
+		}
+	}
+//!! CURRENT 
+	i2cReadStatus = readSensorRegisterINA219(INA219_REG_CURRENT, 2 /* numberOfBytes */);
+	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
+	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB) << 8) | (readSensorRegisterValueLSB & 0xFF);
+
+	if (i2cReadStatus != kWarpStatusOK)
+	{
+		warpPrint(" ----,");
+	}
+	else
+	{
+		if (hexModeFlag)
+		{
+			warpPrint(" 0x%02x 0x%02x,", readSensorRegisterValueMSB, readSensorRegisterValueLSB);
+		}
+		else
+		{
+			int32_t quotient = (readSensorRegisterValueCombined*current_LSB)/1000;
+			int32_t remainder = (readSensorRegisterValueCombined*current_LSB)%1000;
+			warpPrint("%d.%d,\n", quotient, remainder);
+		}
+	}
+}
+
 uint8_t
 appendSensorDataINA219(uint8_t* buf)
 {
