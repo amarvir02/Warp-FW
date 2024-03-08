@@ -1936,61 +1936,24 @@ main(void)
 
 
 # if(WARP_BUILD_ENABLE_FRDMKL03)
-    warpPrint("\nTHIS IS WARP PRINT INITIIALISING THE OLED");
+    warpPrint("\nTHIS IS WARP PRINT INITIIALISING THE OLED\nWill be lit");
 	initINA219(0x40, kWarpDefaultSupplyVoltageMillivoltsINA219);
-	int16_t busvoltage = getBusVoltageINA219();
-	// having current sensor code before oled lit up is bad idea
-	printSensorDataINA219(false);
-	warpPrint("%d\n", busvoltage);
     devSSD1331init();
 	OSA_TimeDelay(500);
-	//int16_t busvoltage;
-	bool	autoIncrement, chatty;
-	int		spinDelay, repetitionsPerAddress, chunkReadsPerAddress;
-	int		adaptiveSssupplyMaxMillivolts;
-	uint8_t		referenceByte;
+	// having current sensor code before oled lit up is bad idea
+	config_and_cal();
 	
-	for (int i=0; i<69; i++)
+	warpPrint("\n Looping INA219 measurements for num times");
+	warpPrint("\n config(HEX) | Shunt Voltage/uV | Bus Voltage/mV | Power/uW | Current/uA\n");
+
+	int16_t num = 1000;
+	for (int i=0; i<num; i++)
 	{
-		 //0x40, 1800
-		//busvoltage = getBusVoltageINA219();
-		// why does it work now
+		config_and_cal();
 		printSensorDataINA219(false);
-		
-		warpPrint("%d\n", busvoltage);
 	}
+
 # endif	
-
-
-// if doing make frdm, then run the oled as green, and maybe we can get current display here 
-//# if(WARP_BUILD_ENABLE_FRDMKL03)
-//    warpPrint("\nTHIS IS WARP PRINT INITIIALISING THE OLED AND CURRENT SENSE\n");
-//	initINA219(0x40, kWarpDefaultSupplyVoltageMillivoltsINA219);
-//	int16_t busvoltage = getBusVoltageINA219();
-//	// having current sensor code before oled lit up is bad idea
-//	OSA_TimeDelay(500);
-//	//4096 is 0x1000
-//	writeSensorRegisterINA219(0x00, 0x399F);
-//	writeSensorRegisterINA219(0x05, 10240);
-//	OSA_TimeDelay(500);
-//	printSensorDataINA219(true);
-//	warpPrint("%d\n", busvoltage);
-//    devSSD1331init();
-//	//let display iniitialise
-//	OSA_TimeDelay(500);
-//	//int16_t busvoltage;
-//	//int16_t busvoltage;
-//	for (int i=0; i<1000; i++)
-//	{
-//		 //0x40, 1800 - reg and default voltage
-//		busvoltage = getBusVoltageINA219();
-//		printSensorDataINA219(false);
-//		// bus voltage should be ~ 5V
-//		warpPrint("%d\n", busvoltage);
-//	}
-//# endif	
-
-
 	warpPrint("Press any key to show menu...\n");
 	gWarpExtraQuietMode = _originalWarpExtraQuietMode;
 
@@ -4990,7 +4953,6 @@ flashReadAllMemory()
 		flashHandleReadByte(dataBuffer[i], &bytesIndex, &readingIndex, &sensorIndex, &measurementIndex, &currentSensorNumberOfReadings, &currentSensorSizePerReading, &sensorBitField, &currentNumberOfSensors, &currentReading);
 	}
 #endif
-
 	return status;
 }
 

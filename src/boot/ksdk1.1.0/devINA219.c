@@ -65,22 +65,107 @@ extern volatile uint32_t		gWarpI2cBaudRateKbps;
 extern volatile uint32_t		gWarpI2cTimeoutMilliseconds;
 extern volatile uint32_t		gWarpSupplySettlingDelayMilliseconds;
 
+
+int16_t		myshuntvoltage;
+//float 		myshuntvoltage;
+int16_t		mybusvoltage;
+int32_t		mypower;
+int32_t 	mycurrent;
+
+int16_t value;
+
+//kWarpSensorOutputRegisterINA219SHUNT_VOLTAGE			= 0x01,
+//kWarpSensorOutputRegisterINA219BUS_VOLTAGE			= 0x02,
+//kWarpSensorOutputRegisterINA219POWER					= 0x03,
+//kWarpSensorOutputRegisterINA219CURRENT				= 0x04,
+
 // copied from MMA8451Q, HDC1000 and adafruit library driver
 #define INA219_REG_CONFIG (0X00)
- /** shunt voltage register **/
-#define INA219_REG_SHUNTVOLTAGE (0x01)
-/** bus voltage register **/
-#define INA219_REG_BUSVOLTAGE (0x02)
-/** power register **/
-#define INA219_REG_POWER (0x03)
-/** current register **/
-#define INA219_REG_CURRENT (0x04)
-/** calibration register **/
-#define INA219_REG_CALIBRATION (0x05)
-/** reset bit **/
+#define INA219_REG_SHUNTVOLTAGE (0x01) /** shunt voltage register **/
+#define INA219_REG_BUSVOLTAGE (0x02) /** bus voltage register **/
+#define INA219_REG_POWER (0x03) /** power register **/
+#define INA219_REG_CURRENT (0x04) /** current register **/
+#define INA219_REG_CALIBRATION (0x05) /** calibration register **/
 #define INA219_CONFIG_RESET (0x8000) // Reset Bit
-/** mask for bus voltage range **/
-#define INA219_CONFIG_BVOLTAGERANGE_MASK (0x2000),// Bus Voltage Range Mask
+#define INA219_CONFIG_BVOLTAGERANGE_MASK (0x2000),/** mask for bus voltage range **/
+
+// I get compile errors if I don't include these here
+// CAm
+
+/** bus voltage range values **/
+enum
+{
+    INA219_CONFIG_BVOLTAGERANGE_16V = (0x0000), // 0-16V Range
+    INA219_CONFIG_BVOLTAGERANGE_32V = (0x2000), // 0-32V Range
+};
+
+/** mask for gain bits **/
+#define INA219_CONFIG_GAIN_MASK (0x1800) // Gain Mask
+
+/** values for gain bits **/
+enum
+{
+    INA219_CONFIG_GAIN_1_40MV =     (0x0000),  // Gain 1, 40mV Range
+    INA219_CONFIG_GAIN_2_80MV =     (0x0800),  // Gain 2, 80mV Range
+    INA219_CONFIG_GAIN_4_160MV =    (0x1000), // Gain 4, 160mV Range
+    INA219_CONFIG_GAIN_8_320MV =    (0x1800), // Gain 8, 320mV Range
+};
+
+/** mask for bus ADC resolution bits **/
+#define INA219_CONFIG_BADCRES_MASK (0x0780)
+
+/** values for bus ADC resolution **/
+enum
+{
+    INA219_CONFIG_BADCRES_9BIT =                (0x0000),  // 9-bit bus res = 0..511
+    INA219_CONFIG_BADCRES_10BIT =               (0x0080), // 10-bit bus res = 0..1023
+    INA219_CONFIG_BADCRES_11BIT =               (0x0100), // 11-bit bus res = 0..2047
+    INA219_CONFIG_BADCRES_12BIT =               (0x0180), // 12-bit bus res = 0..4097
+    INA219_CONFIG_BADCRES_12BIT_2S_1060US =     (0x0480), // 2 x 12-bit bus samples averaged together
+    INA219_CONFIG_BADCRES_12BIT_4S_2130US =     (0x0500), // 4 x 12-bit bus samples averaged together
+    INA219_CONFIG_BADCRES_12BIT_8S_4260US =     (0x0580), // 8 x 12-bit bus samples averaged together
+    INA219_CONFIG_BADCRES_12BIT_16S_8510US =    (0x0600), // 16 x 12-bit bus samples averaged together
+    INA219_CONFIG_BADCRES_12BIT_32S_17MS =      (0x0680), // 32 x 12-bit bus samples averaged together
+    INA219_CONFIG_BADCRES_12BIT_64S_34MS =      (0x0700), // 64 x 12-bit bus samples averaged together
+    INA219_CONFIG_BADCRES_12BIT_128S_69MS =     (0x0780), // 128 x 12-bit bus samples averaged together
+
+};
+
+/** mask for shunt ADC resolution bits **/
+#define INA219_CONFIG_SADCRES_MASK \
+    (0x0078) // Shunt ADC Resolution and Averaging Mask
+
+/** values for shunt ADC resolution **/
+enum
+{
+    INA219_CONFIG_SADCRES_9BIT_1S_84US =    (0x0000),   // 1 x 9-bit shunt sample
+    INA219_CONFIG_SADCRES_10BIT_1S_148US =  (0x0008), // 1 x 10-bit shunt sample
+    INA219_CONFIG_SADCRES_11BIT_1S_276US =  (0x0010), // 1 x 11-bit shunt sample
+    INA219_CONFIG_SADCRES_12BIT_1S_532US =  (0x0018), // 1 x 12-bit shunt sample
+    INA219_CONFIG_SADCRES_12BIT_2S_1060US = (0x0048), // 2 x 12-bit shunt samples averaged together
+    INA219_CONFIG_SADCRES_12BIT_4S_2130US = (0x0050), // 4 x 12-bit shunt samples averaged together
+    INA219_CONFIG_SADCRES_12BIT_8S_4260US = (0x0058), // 8 x 12-bit shunt samples averaged together
+    INA219_CONFIG_SADCRES_12BIT_16S_8510US =(0x0060), // 16 x 12-bit shunt samples averaged together
+    INA219_CONFIG_SADCRES_12BIT_32S_17MS =  (0x0068), // 32 x 12-bit shunt samples averaged together
+    INA219_CONFIG_SADCRES_12BIT_64S_34MS =  (0x0070), // 64 x 12-bit shunt samples averaged together
+    INA219_CONFIG_SADCRES_12BIT_128S_69MS = (0x0078), // 128 x 12-bit shunt samples averaged together
+};
+
+/** mask for operating mode bits **/
+#define INA219_CONFIG_MODE_MASK (0x0007) // Operating Mode Mask
+
+/** values for operating mode **/
+enum
+{
+    INA219_CONFIG_MODE_POWERDOWN =              0x00,       /**< power down */
+    INA219_CONFIG_MODE_SVOLT_TRIGGERED =        0x01, /**< shunt voltage triggered */
+    INA219_CONFIG_MODE_BVOLT_TRIGGERED =        0x02, /**< bus voltage triggered */
+    INA219_CONFIG_MODE_SANDBVOLT_TRIGGERED =    0x03,                                   /**< shunt and bus voltage triggered */
+    INA219_CONFIG_MODE_ADCOFF =                 0x04,           /**< ADC off */
+    INA219_CONFIG_MODE_SVOLT_CONTINUOUS =       0x05, /**< shunt voltage continuous */
+    INA219_CONFIG_MODE_BVOLT_CONTINUOUS =       0x06, /**< bus voltage continuous */
+    INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS =   0x07, /**< shunt and bus voltage continuous */
+};
 
 void
 initINA219(const uint8_t i2cAddress, uint16_t operatingVoltageMillivolts)
@@ -172,65 +257,80 @@ readSensorRegisterINA219(uint8_t deviceRegister, int numberOfBytes)
 	cmdBuf[0] = deviceRegister;
 	warpScaleSupplyVoltage(deviceINA219State.operatingVoltageMillivolts);
 	warpEnableI2Cpins();
-		status = I2C_DRV_MasterReceiveDataBlocking(
-			0 /* I2C peripheral instance */,
-			&slave,
-			cmdBuf,
-			1,
-			(uint8_t*)deviceINA219State.i2cBuffer,
-			numberOfBytes,
-			gWarpI2cTimeoutMilliseconds);
+	status = I2C_DRV_MasterReceiveDataBlocking(
+		0 /* I2C peripheral instance */,
+		&slave,
+		cmdBuf,
+		1,
+		(uint8_t*)deviceINA219State.i2cBuffer,
+		numberOfBytes,
+		gWarpI2cTimeoutMilliseconds);
 
-		//currently here, why...
-		if (status != kStatus_I2C_Success)
-		{
-			return kWarpStatusDeviceCommunicationFailed;
-		}
+	//currently here, why...
+	if (status != kStatus_I2C_Success)
+	{
+		return kWarpStatusDeviceCommunicationFailed;
+	}
 	//warpPrint("\n REGISTERS HAVE BEEN READ \n");
 	return kWarpStatusOK;
 }
 
 // trying to modify the HDC1000 code taking way too long, getting nowhere
 // Looks to take read values from over the I2C bus and manipulating them for printing.
+
+
+// In order to calibrate, need
+// claims on Google: 
+// SSD1331 0.96" draws 25mA.
+// SSD1331 0.95" draws 38mA all white
+// So assume max exp current of 50mA, won't be dissapointed
+// 2x margin on .96", +31.6% margin on .95"
+// 50/(2^15) < I_LSB < 50/(2^12)  ==> Pick I_LSB = 5uA 
+// say cuurent LSB = 5 micro-amp
+// That's my resolution, good?
+// cal = 0.04096/(I_LSB * R_SHUNT) --> 5uA and 0.1 Ohm
+// cal = 81920 
+// max possible I, with chosen values --> 5*2^15 == 0.16384A
+// ~ >3x margin
+//needed for power and current correct readings
+// 5 uA !!!
+//int16_t current_LSB = 5; // [Current is in every $current_LSB-micro-amps], If I Put it in as a correct float of 0.000005, I'd get o/p in amps
+//int16_t power_LSB = 100;  // == 20 * current_LSB, gives power in micro-watts?
+//uint16_t ina219_cal = 81920;
+// Doesn't work as will overflow the 16b of 0x05 anway and get corrected to 16384. :(
+
+
+// Current limited by resolution
+// 2^16 = 65536, ==> current_LSB will be every 6.25uA, but I don't wanna deal with that, cos rounding. So
+// Choose 10uA current_LSB
+int16_t current_LSB = 10; 	/* uA [Current is in every $current_LSB-micro-amps], 
+							If I Put it in as a correct float of 0.000005, I'd get o/p in amps*/
+int16_t power_LSB = 200; 	// == 20 * current_LSB, gives power in micro-watts?
+uint16_t ina219_cal = 40960;
+
+
+void
+config_and_cal()
+{
+	uint16_t config=INA219_CONFIG_BVOLTAGERANGE_32V |INA219_CONFIG_GAIN_8_320MV | INA219_CONFIG_BADCRES_12BIT |
+					INA219_CONFIG_SADCRES_12BIT_1S_532US |INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS;
+ 	writeSensorRegisterINA219(INA219_REG_CONFIG, config);
+	writeSensorRegisterINA219(INA219_REG_CALIBRATION, ina219_cal);
+}
+
 void
 printSensorDataINA219(bool hexModeFlag)
 {
 	uint16_t	readSensorRegisterValueLSB;
 	uint16_t	readSensorRegisterValueMSB;
 	int16_t		readSensorRegisterValueCombined;
-
-	float 		myshuntvoltage;
-	float 		mybusvoltage;
-	float 		mypower;
-	float 		mycurrent;
-	
-	int16_t value;
-
-	//needed for power and current o/p
-	int16_t current_div;
-	int16_t power_mul = 20*current_div; 
-
-
 	WarpStatus	i2cReadStatus;
-
 	warpScaleSupplyVoltage(deviceINA219State.operatingVoltageMillivolts);
-	//kWarpSensorOutputRegisterINA219SHUNT_VOLTAGE			= 0x01,
-	//kWarpSensorOutputRegisterINA219BUS_VOLTAGE			= 0x02,
-	//kWarpSensorOutputRegisterINA219POWER					= 0x03,
-	//kWarpSensorOutputRegisterINA219CURRENT				= 0x04,
 
-
-	warpScaleSupplyVoltage(deviceINA219State.operatingVoltageMillivolts);
-	// read and print probably incompatible due to calling different macros even if they have the same hex values
-	// use same macros???
 	i2cReadStatus = readSensorRegisterINA219(INA219_REG_CONFIG, 2 /* numberOfBytes */);
 	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
 	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
 	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB) << 8) | (readSensorRegisterValueLSB & 0xFF);
-
-	/*
-	 *	NOTE: Here, we don't need to manually sign extend since we are packing directly into an int16_t
-	 */
 
 	if (i2cReadStatus != kWarpStatusOK)
 	{
@@ -244,21 +344,14 @@ printSensorDataINA219(bool hexModeFlag)
 		}
 		else
 		{
-			//myshuntvoltage = readSensorRegisterValueCombined;
-			warpPrint(" %x,", readSensorRegisterValueCombined );
-			//warpPrint(" %f,", (myshuntvoltage/(100) ));
+			warpPrint(" %x,", readSensorRegisterValueCombined);
 		}
 	}
-
 
 	i2cReadStatus = readSensorRegisterINA219(INA219_REG_SHUNTVOLTAGE, 2 /* numberOfBytes */);
 	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
 	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
 	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB) << 8) | (readSensorRegisterValueLSB & 0xFF);
-
-	/*
-	 *	NOTE: Here, we don't need to manually sign extend since we are packing directly into an int16_t
-	 */
 
 	if (i2cReadStatus != kWarpStatusOK)
 	{
@@ -273,21 +366,26 @@ printSensorDataINA219(bool hexModeFlag)
 		else
 		{
 			// the value is internally multiplied by 100, so reverse this (optional)
-			// this is in mV
-			myshuntvoltage = (readSensorRegisterValueCombined)*0.01;
-			//warpPrint(" %d,", readSensorRegisterValueCombined );
-			warpPrint(" %d,", (myshuntvoltage));
+			//// LSB is 10 uV
+			//myshuntvoltage = (float)(readSensorRegisterValueCombined*0.01);
+
+			warpPrint("%d,", (int16_t)readSensorRegisterValueCombined*10);
+			
+			//// Printing as floats - not necessary
+			//// Takes value in 10s of uV, and converts to millivolts.
+			//myshuntvoltage = (float)readSensorRegisterValueCombined*0.01;
+			//const char buffer[20];
+			//int sprintf(buffer, myshuntvoltage);
+			//// Takes args BufferIndex and const char *str
+			//SEGGER_RTT_WriteString(0, buffer);
+
 		}
 	}
 
 	i2cReadStatus = readSensorRegisterINA219(INA219_REG_BUSVOLTAGE, 2 /* numberOfBytes */);
 	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
 	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
-	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB) << 8) | (readSensorRegisterValueLSB & 0xFF);
-
-	/*
-	 *	NOTE: Here, we don't need to manually sign extend since we are packing directly into an int16_t
-	 */
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB) << 8) | (readSensorRegisterValueLSB);
 
 	if (i2cReadStatus != kWarpStatusOK)
 	{
@@ -302,10 +400,8 @@ printSensorDataINA219(bool hexModeFlag)
 		else
 		{
 			// bit shift by 3, multiply out by VBUS LSB (4mV), then convert to V (optional)
-			mybusvoltage = ((readSensorRegisterValueCombined>>3)*4)/**0.001*/ ;
-			//readSensorRegisterValueCombined;
-			//warpPrint(" %d,", readSensorRegisterValueCombined );
-			warpPrint(" %d,", (myshuntvoltage));
+			int16_t shifty = (readSensorRegisterValueCombined>>3);
+			warpPrint("%d,", shifty*4);
 		}
 	}
 
@@ -313,9 +409,7 @@ printSensorDataINA219(bool hexModeFlag)
 	readSensorRegisterValueMSB = deviceINA219State.i2cBuffer[0];
 	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
 	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB) << 8) | (readSensorRegisterValueLSB & 0xFF);
-	/*
-	 *	NOTE: Here, we don't need to manually sign extend since we are packing directly into an int16_t
-	 */
+
 	if (i2cReadStatus != kWarpStatusOK)
 	{
 		warpPrint(" ----,");
@@ -328,11 +422,10 @@ printSensorDataINA219(bool hexModeFlag)
 		}
 		else
 		{
-			/*
-			 *	See Section 8.6.2 of the INA219 manual for the conversion to temperature.
-			 */
-			mypower = readSensorRegisterValueCombined*power_mul;
-			warpPrint(" %d,", (mypower));
+			mypower = (float)readSensorRegisterValueCombined*power_LSB;
+			mypower = (int32_t)readSensorRegisterValueCombined*power_LSB;
+			//warpPrint("%d", (float)readSensorRegisterValueCombined*power_mul);
+			warpPrint("%d,", mypower);
 		}
 	}
 
@@ -341,10 +434,6 @@ printSensorDataINA219(bool hexModeFlag)
 	readSensorRegisterValueLSB = deviceINA219State.i2cBuffer[1];
 	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB) << 8) | (readSensorRegisterValueLSB & 0xFF);
 
-	/*
-	 *	NOTE: Here, we don't need to manually sign extend since we are packing directly into an int16_t
-	 */
-
 	if (i2cReadStatus != kWarpStatusOK)
 	{
 		warpPrint(" ----,");
@@ -357,12 +446,10 @@ printSensorDataINA219(bool hexModeFlag)
 		}
 		else
 		{
-			/*
-			 *	See Section 8.6.2 of the INA219 manual for the conversion to temperature.
-			 */
-
-			mycurrent = (readSensorRegisterValueCombined)/current_div;
-			warpPrint(" %f,", (readSensorRegisterValueCombined));
+			mycurrent = (int32_t)readSensorRegisterValueCombined*current_LSB;
+			//warpPrint(" %d,\n", (int)myshuntvoltage*50);
+			warpPrint(" %d,\n", mycurrent);
+			//warpPrint(" %d,", (mycurrent));
 		}
 	}
 }
@@ -509,15 +596,29 @@ appendSensorDataINA219(uint8_t* buf)
 	return index;
 }
 
-// Insert the adafruit library functions here, since the above doesn't seem to work and idk how2get it working
-// manually calling printSensorDataINA219 doesn't work for w/e reason. broken
 
-
-// when placing warpPrint inside here it doesn't want to print out for some reason.
-// And yes, I still had it return the correct type.
-int16_t getBusVoltageINA219(void)
+// Tried to copy the adafruit datasheet
+// FLopped
+int16_t getShuntVoltage_raw_INA219()
 {
     uint16_t value;
+    readSensorRegisterINA219(INA219_REG_SHUNTVOLTAGE, 2);
+	uint16_t LSB = deviceINA219State.i2cBuffer[0];
+	uint16_t MSB = deviceINA219State.i2cBuffer[1];
+	value = (MSB << 8) | (LSB);
+    return value;
+}
+float getShuntVoltageINA219()
+{
+    int16_t value;
+    value = getShuntVoltage_raw_INA219();
+    return value * 10; // LSB is 10uV
+}
+
+
+int16_t getBusVoltageINA219_raw(void)
+{
+    int16_t value;
 	// perform a read to get the reg pointer correct on the reg u wanna read
 	// see datasheet about I2C reading and writing bite commands
     readSensorRegisterINA219(INA219_REG_BUSVOLTAGE, 2);
@@ -525,167 +626,11 @@ int16_t getBusVoltageINA219(void)
 	uint16_t MSB = deviceINA219State.i2cBuffer[1];
 	value = (MSB << 8) | (LSB);
 	// Shift to the right 3 to drop CNVR and OVF and multiply by LSB
-	value = ((value >> 3) * 4);
+	return value = ((value >> 3) * 4);
 	// the number itself is a float but I can printf format it as such.
-	value = (value*0.001);
+}
+float getBusVoltageINA219(void)
+{
+	int16_t value = getBusVoltageINA219_raw();
 	return value;
 }
-
-//-----------------------------------------------------------------------------------------------------------------------------------
-// Use the 32V_1A setting for config from adafruit library - voltage range on VBUS doesn't seem to matter as per datasheet.
-// LSB of VBUS is 4mV
-// Current 1A bc idk what coud current be. 
-
-///*!
-// *  @brief  Gets the raw bus voltage (16-bit signed integer, so +-32767)
-// *  @return the raw bus voltage reading
-// */
-//int16_t Adafruit_INA219::getBusVoltage_raw() {
-//  uint16_t value;
-//
-//  Adafruit_BusIO_Register bus_voltage_reg =
-//      Adafruit_BusIO_Register(i2c_dev, INA219_REG_BUSVOLTAGE, 2, MSBFIRST);
-//  _success = bus_voltage_reg.read(&value);
-//
-//  // Shift to the right 3 to drop CNVR and OVF and multiply by LSB
-//  return (int16_t)((value >> 3) * 4);
-//}
-//
-///*!
-// *  @brief  Gets the raw shunt voltage (16-bit signed integer, so +-32767)
-// *  @return the raw shunt voltage reading
-// */
-//int16_t Adafruit_INA219::getShuntVoltage_raw() {
-//  uint16_t value;
-//  Adafruit_BusIO_Register shunt_voltage_reg =
-//      Adafruit_BusIO_Register(i2c_dev, INA219_REG_SHUNTVOLTAGE, 2, MSBFIRST);
-//  _success = shunt_voltage_reg.read(&value);
-//  return value;
-//}
-//
-///*!
-// *  @brief  Gets the raw current value (16-bit signed integer, so +-32767)
-// *  @return the raw current reading
-// */
-//int16_t Adafruit_INA219::getCurrent_raw() {
-//  uint16_t value;
-//
-//  // Sometimes a sharp load will reset the INA219, which will
-//  // reset the cal register, meaning CURRENT and POWER will
-//  // not be available ... avoid this by always setting a cal
-//  // value even if it's an unfortunate extra step
-//  Adafruit_BusIO_Register calibration_reg =
-//      Adafruit_BusIO_Register(i2c_dev, INA219_REG_CALIBRATION, 2, MSBFIRST);
-//  calibration_reg.write(ina219_calValue, 2);
-//
-//  // Now we can safely read the CURRENT register!
-//  Adafruit_BusIO_Register current_reg =
-//      Adafruit_BusIO_Register(i2c_dev, INA219_REG_CURRENT, 2, MSBFIRST);
-//  _success = current_reg.read(&value);
-//  return value;
-//}
-//
-///*!
-// *  @brief  Gets the raw power value (16-bit signed integer, so +-32767)
-// *  @return raw power reading
-// */
-//int16_t Adafruit_INA219::getPower_raw() {
-//  uint16_t value;
-//
-//  // Sometimes a sharp load will reset the INA219, which will
-//  // reset the cal register, meaning CURRENT and POWER will
-//  // not be available ... avoid this by always setting a cal
-//  // value even if it's an unfortunate extra step
-//  Adafruit_BusIO_Register calibration_reg =
-//      Adafruit_BusIO_Register(i2c_dev, INA219_REG_CALIBRATION, 2, MSBFIRST);
-//  calibration_reg.write(ina219_calValue, 2);
-//
-//  // Now we can safely read the POWER register!
-//  Adafruit_BusIO_Register power_reg =
-//      Adafruit_BusIO_Register(i2c_dev, INA219_REG_POWER, 2, MSBFIRST);
-//  _success = power_reg.read(&value);
-//  return value;
-//}
-//
-///*!
-// *  @brief  Gets the shunt voltage in mV (so +-327mV)
-// *  @return the shunt voltage converted to millivolts
-// */
-//float Adafruit_INA219::getShuntVoltage_mV() {
-//  int16_t value;
-//  value = getShuntVoltage_raw();
-//  return value * 0.01;
-//}
-//
-///*!
-// *  @brief  Gets the bus voltage in volts
-// *  @return the bus voltage converted to volts
-// */
-//float Adafruit_INA219::getBusVoltage_V() {
-//  int16_t value = getBusVoltage_raw();
-//  return value * 0.001;
-//}
-//
-///*!
-// *  @brief  Gets the current value in mA, taking into account the
-// *          config settings and current LSB
-// *  @return the current reading convereted to milliamps
-// */
-//float Adafruit_INA219::getCurrent_mA() {
-//  float valueDec = getCurrent_raw();
-//  valueDec /= ina219_currentDivider_mA;
-//  return valueDec;
-//}
-//
-///*!
-// *  @brief  Gets the power value in mW, taking into account the
-// *          config settings and current LSB
-// *  @return power reading converted to milliwatts
-// */
-//float Adafruit_INA219::getPower_mW() {
-//  float valueDec = getPower_raw();
-//  valueDec *= ina219_powerMultiplier_mW;
-//  return valueDec;
-//}
-//
-///*!
-// *  @brief  Configures to INA219 to be able to measure up to 32V and 2A
-// *          of current.  Each unit of current corresponds to 100uA, and
-// *          each unit of power corresponds to 2mW. Counter overflow
-// *          occurs at 3.2A.
-// *  @note   These calculations assume a 0.1 ohm resistor is present
-// */
-//void Adafruit_INA219::setCalibration_32V_2A() {
-//  // By default we use a pretty huge range for the input voltage,
-//  // which probably isn't the most appropriate choice for system
-//  // that don't use a lot of power.  But all of the calculations
-//  // are shown below if you want to change the settings.  You will
-//  // also need to change any relevant register settings, such as
-//  // setting the VBUS_MAX to 16V instead of 32V, etc.
-//
-//  // VBUS_MAX = 32V             (Assumes 32V, can also be set to 16V)
-//  // VSHUNT_MAX = 0.32          (Assumes Gain 8, 320mV, can also be 0.16, 0.08,
-//  // 0.04) RSHUNT = 0.1               (Resistor value in ohms)
-//
-//  // 1. Determine max possible current
-//  // MaxPossible_I = VSHUNT_MAX / RSHUNT
-//  // MaxPossible_I = 3.2A
-//
-//  // 2. Determine max expected current
-//  // MaxExpected_I = 2.0A
-//
-//  // 3. Calculate possible range of LSBs (Min = 15-bit, Max = 12-bit)
-//  // MinimumLSB = MaxExpected_I/32767
-//  // MinimumLSB = 0.000061              (61uA per bit)
-//  // MaximumLSB = MaxExpected_I/4096
-//  // MaximumLSB = 0,000488              (488uA per bit)
-//
-//  // 4. Choose an LSB between the min and max values
-//  //    (Preferrably a roundish number close to MinLSB)
-//  // CurrentLSB = 0.0001 (100uA per bit)
-//
-//  // 5. Compute the calibration register
-//  // Cal = trunc (0.04096 / (Current_LSB * RSHUNT))
-//  // Cal = 4096 (0x1000)
-//
-//  ina219_calValue = 4096;
