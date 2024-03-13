@@ -1946,7 +1946,7 @@ main(void)
 	warpPrint("\n Looping INA219 measurements for num times");
 	warpPrint("\n config(HEX) | Shunt Voltage/uV | Bus Voltage/mV | Power/uW | Current/uA\n");
 
-	int16_t num = 1000;
+	int16_t num = 100;
 	for (int i=0; i<num; i++)
 	{
 		config_and_cal();
