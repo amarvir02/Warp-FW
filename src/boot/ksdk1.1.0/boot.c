@@ -1946,11 +1946,37 @@ main(void)
 	warpPrint("\n Looping INA219 measurements for num times");
 	warpPrint("\n config(HEX) | Shunt Voltage/uV | Bus Voltage/mV | Power/uW | Current/uA\n");
 
-	int16_t num = 100;
+	int16_t num = 30;
 	for (int i=0; i<num; i++)
 	{
 		config_and_cal();
 		printSensorDataINA219(false);
+		int val = i%3; 
+		switch (val)
+		{
+			case 0:
+				devSSD_fill_blue();
+				break;
+			case 1:
+				devSSD_fill_green();
+				break;
+			case 2:
+				devSSD_fill_red();
+				break;
+		}
+	}
+	OSA_TimeDelay(1000);
+	for (int l=0; l<20; l++)
+	{
+		warpPrint("\n Printing data in Hexadecimal");
+		printSensorDataMMA8451Q(true);
+	}
+
+	OSA_TimeDelay(1000);
+	for (int l=0; l<20; l++)
+	{
+		warpPrint("\n Printing data in Hexadecimal");
+		printSensorDataMMA8451Q(false);
 	}
 
 # endif	
@@ -2593,8 +2619,7 @@ main(void)
 
 				warpPrint("\r\n\tRepeating dev%d @ 0x%02x, reps=%d, pull=%d, delay=%dms:\n\n",
 					menuTargetSensor, menuRegisterAddress, repetitionsPerAddress, spinDelay);
-				for(count; count<60; count++)
-				{
+
 				repeatRegisterReadForDeviceAndAddress(	
 									menuTargetSensor /*warpSensorDevice*/,
 									menuRegisterAddress /*baseAddress */,
@@ -2607,7 +2632,7 @@ main(void)
 									adaptiveSssupplyMaxMillivolts,
 									referenceByte
 								);
-				};
+				
 
 				break;
 			}
