@@ -36,6 +36,7 @@
 	POSSIBILITY OF SUCH DAMAGE.
 */
 #include <stdlib.h>
+#include <stdint.h>
 
 /*
  *	config.h needs to come first
@@ -55,19 +56,18 @@
 #include "gpio_pins.h"
 #include "SEGGER_RTT.h"
 #include "warp.h"
-
+#include "devMMA8451Q.h"
 
 extern volatile WarpI2CDeviceState	deviceMMA8451QState;
-extern volatile uint32_t		gWarpI2cBaudRateKbps;
-extern volatile uint32_t		gWarpI2cTimeoutMilliseconds;
-extern volatile uint32_t		gWarpSupplySettlingDelayMilliseconds;
-
+extern volatile uint32_t			gWarpI2cBaudRateKbps;
+extern volatile uint32_t			gWarpI2cTimeoutMilliseconds;
+extern volatile uint32_t			gWarpSupplySettlingDelayMilliseconds;
 
 
 void
 initMMA8451Q(const uint8_t i2cAddress, uint16_t operatingVoltageMillivolts)
 {
-	deviceMMA8451QState.i2cAddress			= i2cAddress;
+	deviceMMA8451QState.i2cAddress					= i2cAddress;
 	deviceMMA8451QState.operatingVoltageMillivolts	= operatingVoltageMillivolts;
 
 	return;
@@ -215,6 +215,11 @@ printSensorDataMMA8451Q(bool hexModeFlag)
 
 
 	warpScaleSupplyVoltage(deviceMMA8451QState.operatingVoltageMillivolts);
+	
+	// Should probably config registers before the read and print operations
+	// Could do this elsewhe	re, but no
+
+	
 
 	/*
 	 *	From the MMA8451Q datasheet:
@@ -235,6 +240,7 @@ printSensorDataMMA8451Q(bool hexModeFlag)
 
 	/*
 	 *	Sign extend the 14-bit value based on knowledge that upper 2 bit are 0:
+	 * 	But they're not?
 	 */
 	readSensorRegisterValueCombined = (readSensorRegisterValueCombined ^ (1 << 13)) - (1 << 13);
 
@@ -420,4 +426,211 @@ appendSensorDataMMA8451Q(uint8_t* buf)
 		index += 1;
 	}
 	return index;
+}
+
+
+// From Adafruit Library
+
+bool MMA8451Qconfig(const uint8_t i2cAddress){
+	writeSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG2, 0x40); // reset
+	while (deviceMMA8451QState.i2cBuffer[0] & 0x40);
+		// enable 4G range
+		readSensorRegisterMMA8451Q(MMA8451_REG_XYZ_DATA_CFG, MMA8451_RANGE_4_G);
+		// High res
+		writeSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG2, 0x02);
+		// DRDY on INT1
+		writeSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG4, 0x01);
+		writeSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG5, 0x01);
+
+		// Turn on orientation config
+		writeSensorRegisterMMA8451Q(MMA8451_REG_PL_CFG, 0x40);
+		// Activate at 12.5Hz with high resolution mode on
+		writeSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG1, 0x01|0x28);
+	
+	return true;
+}
+
+// Sets g mode - 2g, 4g, 8g
+void MMA8451QsetRange(mma8451_range_t range){
+	// fetch the control register
+	readSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG1, 1);
+	uint8_t ctrl_reg1 = deviceMMA8451QState.i2cBuffer[0];
+
+	writeSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG1, 0x00); // PUT INTO STANDBY
+	writeSensorRegisterMMA8451Q(MMA8451_REG_XYZ_DATA_CFG, range & 0x3);
+	writeSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG1, ctrl_reg1 | 0x01); // Acticatte
+}
+
+uint8_t range;
+uint16_t divider;
+mma8451_range_t MMA8451QgetRange(void) 
+{
+  /* Read the data format register to preserve bits */
+	readSensorRegisterMMA8451Q((MMA8451_REG_XYZ_DATA_CFG) & 0x03, 1);
+	range = deviceMMA8451QState.i2cBuffer[0];
+	if (range == MMA8451_RANGE_8_G){divider = 1024;}
+	if (range == MMA8451_RANGE_4_G){divider = 2048;}
+	if (range == MMA8451_RANGE_2_G){divider = 4096;}
+
+	return (mma8451_range_t)(range);
+}
+
+void MMA8451QsetDataRate(mma8451_dataRate_t dataRate) {
+	uint8_t ctl1 = readSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG1,1);
+	writeSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG1, 0x00); // deactivate
+	ctl1 &= ~(MMA8451_DATARATE_MASK << 3);       // mask off bits
+	ctl1 |= (dataRate << 3);
+	writeSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG1, ctl1 | 0x01); // activate
+}
+
+// GEts data rate aka ODR
+mma8451_dataRate_t MMA8451QgetDataRate(void){
+	readSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG1,1);
+	return (mma8451_dataRate_t)(((deviceMMA8451QState.i2cBuffer[0]) >> 3) & MMA8451_DATARATE_MASK);
+}
+
+int getSensorDataMMA8451Q_XYZ(void)
+{
+	WarpStatus	i2cReadStatus;
+
+	warpScaleSupplyVoltage(deviceMMA8451QState.operatingVoltageMillivolts);
+	mma8451_range_t range = MMA8451QgetRange();
+	i2cReadStatus = readSensorRegisterMMA8451Q(kWarpSensorOutputRegisterMMA8451QOUT_X_MSB, 6);
+
+	X = (deviceMMA8451QState.i2cBuffer[0]<<6)|(deviceMMA8451QState.i2cBuffer[1]>>2);
+	Y = (deviceMMA8451QState.i2cBuffer[2]<<6)|(deviceMMA8451QState.i2cBuffer[3]>>2);
+	Z = (deviceMMA8451QState.i2cBuffer[4]<<6)|(deviceMMA8451QState.i2cBuffer[5]>>2);
+
+	return 0;
+}
+
+
+void
+printSensorDataMMA8451Q_XYZ(bool hexModeFlag)
+{
+	uint16_t	readSensorRegisterValueLSB;
+	uint16_t	readSensorRegisterValueMSB;
+	int16_t		readSensorRegisterValueCombined;
+	WarpStatus	i2cReadStatus;
+
+	warpScaleSupplyVoltage(deviceMMA8451QState.operatingVoltageMillivolts);
+	mma8451_range_t range = MMA8451QgetRange();
+
+	i2cReadStatus = readSensorRegisterMMA8451Q(kWarpSensorOutputRegisterMMA8451QOUT_X_MSB, 6);
+
+	getSensorDataMMA8451Q_XYZ();
+
+	// format for 2g is sgn bit, integer bit (0 or 1), then fraction, up to 0.9975 or so.
+	// ~ 4g if 0b011111111
+	int_x = ((X & (0b001100000000000))>>13);
+	int_y = ((Y & (0b001100000000000))>>13);
+	int_z = ((Z & (0b001100000000000))>>13);
+	
+	frac_x = (uint32_t) ((X & (0b0000011111111111))*10000)/divider;
+	frac_y = (uint32_t) ((Y & (0b0000011111111111))*10000)/divider;
+	frac_z = (uint32_t) ((Z & (0b0000011111111111))*10000)/divider;
+
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 6) | (readSensorRegisterValueLSB >> 2);
+
+	/*
+	 *	Sign extend the 14-bit value based on knowledge that upper 2 bit are 0:
+	 */
+	readSensorRegisterValueCombined = (readSensorRegisterValueCombined ^ (1 << 13)) - (1 << 13);
+
+	if (i2cReadStatus != kWarpStatusOK)
+	{
+		warpPrint(" ----,");
+	}
+	else
+	{
+		if (hexModeFlag)
+		{
+			warpPrint(" 0x%04x,", X);
+		}
+		else
+		{
+			warpPrint("x %d.%d y %d.%d z %d.%d", int_x, frac_x, int_y, frac_y, int_z, frac_z);
+		}
+	}
+}
+
+
+uint16_t x_combo;
+// At 12.5Hz, 100B should hopefully be enough to store 10s worth of data recordings  
+uint16_t iter ,accel_x[100]={0}, vel_x[100]={0}, pos_x[100]={0};
+//uint16_t accel_y[100] ={0}, vel_y[100] ={0}, pos_y[100] =[0];
+//uint16_t accel_z[100] ={0}, vel_z[100] ={0}, pos_z[100] =[0];
+uint16_t t1;
+uint16_t t2; 
+
+void intergrate_velocity(void){
+	for(iter=0; iter<100; iter++){
+		t2 = OSA_TimeGetMsec();
+		readSensorRegisterMMA8451Q(kWarpSensorOutputRegisterMMA8451QOUT_X_MSB, 6);
+		
+		//Needs repeating for all X, Y, Z
+		X =((deviceMMA8451QState.i2cBuffer[0]<<6)|(deviceMMA8451QState.i2cBuffer[1]>>2));
+		OSA_TimeDelay(80); //12.5Hz sample rate
+		if (iter=0){
+			accel_x[iter] = X;
+			iter++;
+			t1 = OSA_TimeGetMsec();
+			continue;
+		}
+		if (iter=1){
+			accel_x[iter] = X;
+			iter++;
+			t1 = OSA_TimeGetMsec();
+			continue;
+		}
+		else{
+			accel_x[iter] = X;
+			vel_x[iter] = accel_x[iter] + 0.5*(t2-t1)*(accel_x[iter]- accel_x[iter-1]);
+			accel_x[iter] = vel_x[iter] + 0.5*(t2-t1)*(vel_x[iter]- vel_x[iter-1]);
+		}
+		t1 = OSA_TimeGetMsec();
+
+	}
+	for (iter=0;iter<100; iter++){
+
+	}
+}
+
+void max_axis_sel(){
+	readSensorRegisterMMA8451Q(kWarpSensorOutputRegisterMMA8451QOUT_X_MSB, 6);
+}
+
+
+
+// See AN4076
+int standbySensorMAA8451Q(void)
+{
+	readSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG1, 2);
+	int n = deviceMMA8451QState.i2cBuffer[0];
+	uint8_t activemask = 0b00000001;
+	writeSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG1,( n & ~activemask ));
+	return 0;
+}
+
+int activateSensorMAA8451Q(void)
+{
+	readSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG1, 2);
+	int n = deviceMMA8451QState.i2cBuffer[0];
+	uint8_t activemask = 0b00000001;
+	writeSensorRegisterMMA8451Q(MMA8451_REG_CTRL_REG1,( n | activemask ));
+	return 0;
+}
+
+
+WarpStatus
+myconfigureSensorMMA8451Q(void)
+{
+	// put sensor into standby
+	standbySensorMAA8451Q();
+	//readSensorRegisterMMA8451Q(MMA8451_REG_XYZ_DATA_CFG,1);
+	// Writing for 2g, with no high-pass filter ==> All zeroes
+	writeSensorRegisterMMA8451Q(MMA8451_REG_XYZ_DATA_CFG, 0x00);
+	// activate
+	activateSensorMAA8451Q();
+	// Set the ODR
 }

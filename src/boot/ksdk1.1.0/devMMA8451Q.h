@@ -129,3 +129,29 @@ typedef enum {
 
   MMA8451_DATARATE_MASK = 0b111
 } mma8451_dataRate_t;
+
+#define FRAC_2d1 5000
+#define FRAC_2d2 2500
+#define FRAC_2d3 1250
+#define FRAC_2d4 625
+#define FRAC_2d5 313
+#define FRAC_2d6 156
+#define FRAC_2d7 78
+#define FRAC_2d8 39
+#define FRAC_2d9 20
+#define FRAC_2d10 10
+#define FRAC_2d11 5
+#define FRAC_2d12 2
+
+uint16_t X;
+uint16_t Y;
+uint16_t Z;
+
+uint16_t int_x;
+uint16_t int_y;
+uint16_t int_z;
+
+uint32_t frac_x;
+uint32_t frac_y;
+uint32_t frac_z;
+
