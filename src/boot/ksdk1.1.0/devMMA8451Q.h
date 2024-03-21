@@ -143,15 +143,3 @@ typedef enum {
 #define FRAC_2d11 5
 #define FRAC_2d12 2
 
-uint16_t X;
-uint16_t Y;
-uint16_t Z;
-
-uint16_t int_x;
-uint16_t int_y;
-uint16_t int_z;
-
-uint32_t frac_x;
-uint32_t frac_y;
-uint32_t frac_z;
-

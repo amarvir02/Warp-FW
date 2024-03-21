@@ -1969,7 +1969,7 @@ main(void)
 	//WarpStatus  i2cReadStatus;
 
 	MMA8451Qconfig(0x40);
-	MMA8451QsetRange(MMA8451_RANGE_4_G);
+	MMA8451QsetRange(MMA8451_RANGE_8_G);
 	MMA8451QsetDataRate(MMA8451_DATARATE_12_5_HZ);
 
 	OSA_TimeDelay(1000);
@@ -1979,6 +1979,10 @@ main(void)
 		printSensorDataMMA8451Q(true);
 		printSensorDataMMA8451Q_XYZ(false);
 		OSA_TimeDelay(100);
+		
+		recordDataMMA8451Q();
+		integrate_();
+		Gaussian();
 
 		//warpPrint("\n X_MSB %x X_LSB %x Y_MSB %x Y_LSB %x Z_MSB %x Z_LSB %x",read_X_MSB, read_X_LSB, read_Y_MSB, read_Y_LSB, read_Z_MSB, read_Z_LSB);
 	}
