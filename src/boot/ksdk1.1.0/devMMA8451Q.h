@@ -72,9 +72,11 @@ const uint8_t numberOfReadingsPerMeasurementMMA8451Q = 3;
 #define MMA8451_REG_PL_BF_ZCOMP		0x13
 #define MMA8451_REG_P_L_THS_REG		0x14
 
-#define MMA8451_REG_FF_MT_CFG		0x16
-#define MMA8451_REG_FF_MT_COUNT		0x17
-#define MMA8451_REG_FF_MT_THS		0x18
+#define MMA8451_REG_FF_MT_CFG		0x15
+#define MMA8451_REG_FF_MT_SRC		0x16
+#define MMA8451_REG_FF_MT_THS		0x17
+#define MMA8451_REG_FF_MT_COUNT		0x18
+
 
 #define MMA8451_REG_TRANSIENT_CFG	0x1D
 #define MMA8451_REG_TRANSIENT_SCR	0x1E
@@ -111,9 +113,9 @@ const uint8_t numberOfReadingsPerMeasurementMMA8451Q = 3;
 
 
 typedef enum {
-  MMA8451_RANGE_8_G = 0b10, // +/- 8g
-  MMA8451_RANGE_4_G = 0b01, // +/- 4g
-  MMA8451_RANGE_2_G = 0b00  // +/- 2g (default value)
+  MMA8451_RANGE_8_G = 0x02, // +/- 8g
+  MMA8451_RANGE_4_G = 0x01, // +/- 4g
+  MMA8451_RANGE_2_G = 0x00,  // +/- 2g (default value)
 } mma8451_range_t;
 
 /*! Used with register 0x2A (MMA8451_REG_CTRL_REG1) to set bandwidth */
@@ -143,3 +145,35 @@ typedef enum {
 #define FRAC_2d11 5
 #define FRAC_2d12 2
 
+
+void printSensorDataMMA8451Q_arb(uint8_t deviceRegister, int numberOfBytes, bool hexModeFlag);
+void printSensorDataMMA8451Q_arb(uint8_t deviceRegister, int numberOfBytes, bool hexModeFlag);
+void MMA8451QsetDataRate(mma8451_dataRate_t dataRate);
+mma8451_dataRate_t MMA8451QgetDataRate(void);
+mma8451_range_t getRangeMMA8451Q(void);
+void getSensorDataMMA8451Q_XYZ(void);
+int sign(myint);
+int standbySensorMAA8451Q(void);
+int activateSensorMAA8451Q(void);
+void print_debug_X(void);
+void convert2dec_XYZ(void);
+
+int zliftcheck(bool stillz);
+void liftcheck(bool stillx, bool stilly, bool stillz);
+void waiting_room(void);
+void mainloop(void);
+
+
+//void motionConfigMMA8451Q(void);
+//void motion_detection(void);
+
+ 
+const char pos_sign[] = "+";
+const char neg_sign[] = "-";
+
+
+//struct accel{
+//	uint16_t X;
+//	uint16_t Y;
+//	uint16_t Z;
+//};

@@ -1,41 +1,4 @@
-/*
-	Authored 2016-2018. Phillip Stanley-Marbell.
 
-	Additional contributions, 2018 onwards: See git blame.
-
-	All rights reserved.
-
-	Redistribution and use in source and binary forms, with or without
-	modification, are permitted provided that the following conditions
-	are met:
-
-	*	Redistributions of source code must retain the above
-		copyright notice, this list of conditions and the following
-		disclaimer.
-
-	*	Redistributions in binary form must reproduce the above
-		copyright notice, this list of conditions and the following
-		disclaimer in the documentation and/or other materials
-		provided with the distribution.
-
-	*	Neither the name of the author nor the names of its
-		contributors may be used to endorse or promote products
-		derived from this software without specific prior written
-		permission.
-
-	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-	"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-	LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-	FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-	COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-	INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-	BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-	LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-	CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-	LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-	ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-	POSSIBILITY OF SUCH DAMAGE.
-*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -81,7 +44,7 @@
 #include "devMMA8451Q.h"
 #include "devMAG3110.h"
 #include "devL3GD20H.h"
-#include "devSSD1331.h"
+//#include "devSSD1331.h"
 //#include "devINA219.h"
 //#include "devBME680.h"
 //#include "devBMX055.h"
@@ -192,6 +155,9 @@
 	#include "devINA219.h"
 	volatile WarpI2CDeviceState			deviceINA219State;
 #endif
+
+
+
 
 typedef enum
 {
@@ -1935,64 +1901,66 @@ main(void)
 	gWarpExtraQuietMode = false;
 
 
-# if(WARP_BUILD_ENABLE_FRDMKL03)
+#if (WARP_BUILD_ENABLE_FRDMKL03)
     warpPrint("\nTHIS IS WARP PRINT INITIIALISING THE OLED\nWill be lit");
-	initINA219(0x40, kWarpDefaultSupplyVoltageMillivoltsINA219);
-    devSSD1331init();
+	//initINA219(0x40, kWarpDefaultSupplyVoltageMillivoltsINA219);
+    //devSSD1331init();
 	OSA_TimeDelay(500);
-	// having current sensor code before oled lit up is bad idea
-	config_and_cal();
+	//// having current sensor code before oled lit up is bad idea
+	//INA219config_and_cal();
 	
 	warpPrint("\n Looping INA219 measurements for num times");
 	warpPrint("\n config(HEX) | Shunt Voltage/uV | Bus Voltage/mV | Power/uW | Current/uA\n");
-
-	int16_t num = 30;
+	int16_t num = 15;
 	for (int i=0; i<num; i++)
 	{
-		config_and_cal();
-		printSensorDataINA219(false);
-		int val = i%3; 
-		switch (val)
-		{
-			case 0:
-				devSSD_fill_blue();
-				break;
-			case 1:
-				devSSD_fill_green();
-				break;
-			case 2:
-				devSSD_fill_red();
-				break;
-		}
-	}
-
-	//WarpStatus  i2cReadStatus;
-
-	MMA8451Qconfig(0x40);
+	//config_and_cal();
+	//	printSensorDataINA219(false);
+	//	int val = i%3; 
+	//	switch (val)
+	//	{
+	//		case 0:
+	//			devSSD_fill_blue();
+	//			break;
+	//		case 1:
+	//			devSSD_fill_green();
+	//			break;
+	//		case 2:
+	//			devSSD_fill_red();
+	//			break;
+	//	}
+	//}
+	//devSSD_fill_white();
+	WarpStatus  i2cReadStatus;
+	initMMA8451Q(0x1D, kWarpDefaultSupplyVoltageMillivoltsMMA8451Q);
 	MMA8451QsetRange(MMA8451_RANGE_8_G);
-	MMA8451QsetDataRate(MMA8451_DATARATE_12_5_HZ);
-
-	OSA_TimeDelay(1000);
+	MMA8451QsetDataRate(MMA8451_DATARATE_50_HZ);
+	MMA8451QgetDataRate();
+	
+	getRangeMMA8451Q();
+	
+	warpPrint("\n Printing xyz accelerometer data as Hex");
+	OSA_TimeDelay(2000);
 	for (int l=0; l<20; l++)
 	{
-		warpPrint("\n Printing data in Hexadecimal");
-		printSensorDataMMA8451Q(true);
-		printSensorDataMMA8451Q_XYZ(false);
-		OSA_TimeDelay(100);
-		
-		recordDataMMA8451Q();
-		integrate_();
-		Gaussian();
-
-		//warpPrint("\n X_MSB %x X_LSB %x Y_MSB %x Y_LSB %x Z_MSB %x Z_LSB %x",read_X_MSB, read_X_LSB, read_Y_MSB, read_Y_LSB, read_Z_MSB, read_Z_LSB);
+		warpPrint("\n");
+		printSensorDataMMA8451Q_XYZ(true);
+		//printSensorDataMMA8451Q(true);
+		//print_debug_X();
+		OSA_TimeDelay(10);
 	}
 
-//`	OSA_TimeDelay(1000);
-//`	for (int l=0; l<20; l++)
-//`	{
-//`		warpPrint("\n Printing data in Hexadecimal");
-//`		printSensorDataMMA8451Q(false);
-//`	}
+	warpPrint("\n 10 seconds \n Printing xyz accelerometer data in [g]");
+	warpPrint("\n %s","Activating motion detection...");
+	warpPrint("\n %s","Lift to Trigger");
+	//motionConfigMMA8451Q();
+	// < (mythreshold+1)
+	waiting_room();
+	mainloop();
+		
+	warpPrint("%s","\n DONE\n");
+	//devSSD_fill_red();
+	//motion_detection();
 
 # endif	
 	warpPrint("Press any key to show menu...\n");
@@ -2609,7 +2577,7 @@ main(void)
 				uint8_t	referenceByte;
 				int 	count=0;
 
-				printSensorDataINA219(true);
+				//printSensorDataINA219(true);
 
 				warpPrint("\r\n\tAuto-increment from base address 0x%02x? ['0' | '1']> ", menuRegisterAddress);
 				autoIncrement = warpWaitKey() - '0';
@@ -3698,10 +3666,10 @@ printAllSensors(bool printHeadersAndCalibration, bool hexModeFlag,
 
 #if (WARP_BUILD_ENABLE_INA219)
 warpPrint(" INA219 Shunt voltage, INA219 Bus voltage, INA219 Power, INA219 Current");
-#endif
 numberOfConfigErrors += writeSensorRegisterINA219(
 		kWarpSensorConfigurationRegisterINA219Configuration, /* Configuration register	*/
 		0b0011100110011111);
+#endif
 #if (WARP_CSVSTREAM_FLASH_PRINT_METADATA)
 		warpPrint(" RTC->TSR, RTC->TPR,");
 #endif

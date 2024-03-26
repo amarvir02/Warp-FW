@@ -43,3 +43,10 @@ typedef enum
 } SSD1331Commands;
 
 int	devSSD1331init(void);
+
+
+int devSSD_fill_white(void);
+int devSSD_fill_red(void);
+int devSSD_fill_blue(void);
+int devSSD_fill_green(void);
+int devSSD_fill_blank(void);

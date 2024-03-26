@@ -206,9 +206,10 @@ devSSD1331init(void)
 	return 0;
 }
 
+// COlours ABC (BGR) are 5,6,5 bit respectively
 
 int
-devSSD_fill_blue(void)
+devSSD_fill_red(void)
 {
 	writeCommand(kSSD1331CommandDRAWRECT);
     writeCommand(0x00); //start col
@@ -236,17 +237,17 @@ devSSD_fill_green(void)
     writeCommand(0x3F); // end row
    
     writeCommand(0x00); 
-    writeCommand(0x3F); // setting border
+    writeCommand(0b111111); // setting border
     writeCommand(0x00);
     
     writeCommand(0x00);
-    writeCommand(0x3F); // setting fill
+    writeCommand(0b111111); // setting fill
     writeCommand(0x00);
 	return 0;
 }
 
 int
-devSSD_fill_red(void)
+devSSD_fill_blue(void)
 {
 	writeCommand(kSSD1331CommandDRAWRECT);
     writeCommand(0x00); //start col
@@ -256,11 +257,49 @@ devSSD_fill_red(void)
    
     writeCommand(0x00); 
     writeCommand(0x00); // setting border
-    writeCommand(0x1F);
+    writeCommand(0b11111);
 
     writeCommand(0x00);
     writeCommand(0x00); // setting fill
-    writeCommand(0x1F);
+    writeCommand(0b11111);
 	return 0;
 	
+}
+
+int
+devSSD_fill_white(void)
+{
+	writeCommand(kSSD1331CommandDRAWRECT);
+    writeCommand(0x00); //start col
+    writeCommand(0x00); // start row
+    writeCommand(0x5F); // end col
+    writeCommand(0x3F); // end row
+   
+    writeCommand(0b11111); 
+    writeCommand(0b011111); // setting border
+    writeCommand(0b11111);
+
+    writeCommand(0b11111); 
+    writeCommand(0b011111); // setting fill
+    writeCommand(0b11111);
+	return 0;	
+}
+
+int
+devSSD_fill_blank(void)
+{
+	writeCommand(kSSD1331CommandDRAWRECT);
+    writeCommand(0x00); //start col
+    writeCommand(0x00); // start row
+    writeCommand(0x5F); // end col
+    writeCommand(0x3F); // end row
+   
+    writeCommand(0x00); 
+    writeCommand(0x00); // setting border
+    writeCommand(0x00);
+
+    writeCommand(0x00); 
+    writeCommand(0x00); // setting fill
+    writeCommand(0x00);
+	return 0;	
 }

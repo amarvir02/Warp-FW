@@ -310,7 +310,7 @@ uint16_t ina219_cal = 40960;
 
 
 void
-config_and_cal()
+INA219config_and_cal()
 {
 	uint16_t config=INA219_CONFIG_BVOLTAGERANGE_32V |INA219_CONFIG_GAIN_8_320MV | INA219_CONFIG_BADCRES_12BIT |
 					INA219_CONFIG_SADCRES_12BIT_1S_532US |INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS;
@@ -496,11 +496,11 @@ printdecSensorDataINA219(bool hexModeFlag)
 
 			// Printing as floats - not necessary
 			// Takes value in 10s of uV, and converts to millivolts.
-			//myshuntvoltage = (float)readSensorRegisterValueCombined/100;
-			//const char buffer[20];
-			//int sprintf(buffer, myshuntvoltage);
+			// myshuntvoltage = (float)readSensorRegisterValueCombined/100;
+			// const char buffer[20];
+			// int sprintf(buffer, myshuntvoltage);
 			//// Takes args BufferIndex and const char *str
-			//SEGGER_RTT_WriteString(0, buffer);
+			// SEGGER_RTT_WriteString(0, buffer);
 
 			// Using fixed point?
 			int16_t quotient = readSensorRegisterValueCombined/100;
