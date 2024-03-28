@@ -1903,8 +1903,7 @@ main(void)
 
 #if (WARP_BUILD_ENABLE_FRDMKL03)
     warpPrint("\nTHIS IS WARP PRINT INITIIALISING THE OLED\nWill be lit");
-	//initINA219(0x40, kWarpDefaultSupplyVoltageMillivoltsINA219);
-    //devSSD1331init();
+
 	OSA_TimeDelay(500);
 	//// having current sensor code before oled lit up is bad idea
 	//INA219config_and_cal();
@@ -1953,7 +1952,7 @@ main(void)
 	warpPrint("\n 10 seconds \n Printing xyz accelerometer data in [g]");
 	warpPrint("\n %s","Activating motion detection...");
 	warpPrint("\n %s","To Trigger: Shake very quickly or Stroke in large motions");
-	
+
 	//motionConfigMMA8451Q();
 	// < (mythreshold+1)
 	waiting_room();

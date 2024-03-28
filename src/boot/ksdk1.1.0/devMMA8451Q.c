@@ -710,8 +710,7 @@ void mainloop(void){
 					//stores z as positive, unsigned integer only -- loses accuracy
 					
 					printfloat(float_z);
-					//printfloat(float_z);
-					OSA_TimeDelay(35); // calculating the math is currently at a +10ms overhead
+					OSA_TimeDelay(40); // calculating the math is currently at a +15ms overhead
 					t2=OSA_TimeGetMsec();
 					time_counter_loop+=(t2-t1);
 				}
@@ -737,8 +736,8 @@ void mainloop(void){
 	}
 	int harlem_shake = count_loop();
 	warpPrint("\n Total Time elapsed in detection loop = %d ms\n", total_time_counter_ms);
-	warpPrint("No of violent shakes = %d \n", violent_counter);;
-	warpPrint("Est No of shakes = %d \n", harlem_shake);
+	//warpPrint("No of violent shakes = %d \n", violent_counter);;
+	warpPrint("Est No of violent shakes = %d \n", harlem_shake);
 	return;
 }
 
@@ -768,23 +767,10 @@ int count_loop(void){
 	shake_count+= violent_counter;
 	return shake_count;
 }
+// if activity mean count is within 2 sigma of that distribution
+// it's considered to belong to that distribution
 
-float gaussian_compare(int count){
-	// if activity mean count is within 2 sigma of that distribution
-	// it's considered to belong to that distribution
-	if (stroke_min < count < stroke_max){
-		stroke_bool = true;
-
-
-		mean_stroke - count
-	}
-	if (shake_min < count < shake_max){
-		shake_bool = true;
-	}
-	erf();
-}
-
-
+// mapping discrete step counts to a gaussian (continous) is not a good idea
 
 
 
