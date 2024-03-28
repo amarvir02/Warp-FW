@@ -1,4 +1,4 @@
-
+#include <math.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -25,11 +25,12 @@ extern volatile uint32_t			gWarpI2cBaudRateKbps;
 extern volatile uint32_t			gWarpI2cTimeoutMilliseconds;
 extern volatile uint32_t			gWarpSupplySettlingDelayMilliseconds;
 
+const int TIME_LIMIT = 10000;
 uint8_t X_MSB, X_LSB, Y_MSB, Y_LSB, Z_MSB, Z_LSB;
 int16_t X, Y, Z;
 uint16_t uint_x, uint_y, uint_z;
 uint32_t frac_x, frac_y, frac_z;
-double ffrac_x, ffrac_y, ffrac_z;
+float ffrac_x, ffrac_y, ffrac_z;
 uint32_t x, y, z;
 uint8_t r;
 
@@ -40,6 +41,24 @@ uint16_t divider;
 uint16_t bitmask_int, bitmask_frac;
 uint16_t bitmask_sign = (1<<13);
 uint16_t r_shift;
+
+// Determined by empirical experimentation
+const float mean_stroke = 20.8333333f;
+const float stddev_stroke = 1.9113254f;
+const float stddev_stroke2 = 3.822650f;
+float stroke_min = mean_stroke - stddev_stroke2;
+float stroke_max = mean_stroke + stddev_stroke2;
+
+const float mean_shake = 55.4545455f;
+const float stddev_shake = 3.3402132f;
+const float stddev_shake2 = 6.6804264f;
+float shake_min = mean_shake - stddev_shake2;
+float shake_max = mean_shake + stddev_shake2;
+
+const float sqrt2 = 1.41421356237;
+
+bool shake_bool;
+bool stroke_bool;
 
 
 void initMMA8451Q(const uint8_t i2cAddress, uint16_t operatingVoltageMillivolts){
@@ -167,47 +186,116 @@ WarpStatus readSensorRegisterMMA8451Q(uint8_t deviceRegister, int numberOfBytes)
 	return kWarpStatusOK;
 }
 
-
-void printSensorDataMMA8451Q_arb(uint8_t deviceRegister, int numberOfBytes, bool hexModeFlag){
-	// printing arbitrary registers
+void printSensorDataMMA8451Q(bool hexModeFlag)
+{
 	uint16_t	readSensorRegisterValueLSB;
 	uint16_t	readSensorRegisterValueMSB;
 	int16_t		readSensorRegisterValueCombined;
 	WarpStatus	i2cReadStatus;
+
+
 	warpScaleSupplyVoltage(deviceMMA8451QState.operatingVoltageMillivolts);
-	uint8_t storage_array[32];
-	uint8_t register_array[32];
 	
 	// Should probably config registers before the read and print operations
 	// Could do this elsewhe	re, but no
+
+	
+
 	/*
-	 *	Prints out any selection of arbitrary registers from a given starting point
+	 *	From the MMA8451Q datasheet:
 	 *
+	 *		"A random read access to the LSB registers is not possible.
+	 *		Reading the MSB register and then the LSB register in sequence
+	 *		ensures that both bytes (LSB and MSB) belong to the same data
+	 *		sample, even if a new data sample arrives between reading the
+	 *		MSB and the LSB byte."
+	 *
+	 *	We therefore do 2-byte read transactions, for each of the registers.
+	 *	We could also improve things by doing a 6-byte read transaction.
+	 */
+	i2cReadStatus = readSensorRegisterMMA8451Q(kWarpSensorOutputRegisterMMA8451QOUT_X_MSB, 2 /* numberOfBytes */);
+	readSensorRegisterValueMSB = deviceMMA8451QState.i2cBuffer[0];
+	readSensorRegisterValueLSB = deviceMMA8451QState.i2cBuffer[1];
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 6) | (readSensorRegisterValueLSB >> 2);
+
+	/*
+	 *	Sign extend the 14-bit value based on knowledge that upper 2 bit are 0:
+	 * 	But they're not?
 	 */
 	
-	i2cReadStatus = readSensorRegisterMMA8451Q(deviceRegister, numberOfBytes);
-	for (int i; i<numberOfBytes; i++){
-		register_array[i] = deviceRegister;
-		storage_array[i]= deviceMMA8451QState.i2cBuffer[i];
-	}
-	//readSensorRegisterValueCombined = (readSensorRegisterValueCombined ^ (1 << 13)) - (1 << 13);
-	if (i2cReadStatus != kWarpStatusOK){
+	readSensorRegisterValueCombined = (readSensorRegisterValueCombined ^ (1 << 13)) - (1 << 13);
+
+	if (i2cReadStatus != kWarpStatusOK)
+	{
 		warpPrint(" ----,");
 	}
 	else
 	{
-		if (hexModeFlag){
-			for (int i; i<numberOfBytes; i++){
-			warpPrint("\n %02x || %02x",register_array[i],storage_array[i]);
-			}
+		if (hexModeFlag)
+		{
+			warpPrint(" 0x%02x 0x%02x,", readSensorRegisterValueMSB, readSensorRegisterValueLSB);
 		}
-		else{
-			for (int i; i<numberOfBytes; i++){
-			warpPrint("\n %d",storage_array[i]);
-			}
+		else
+		{
+			warpPrint(" %d,", readSensorRegisterValueCombined);
+		}
+	}
+
+	i2cReadStatus = readSensorRegisterMMA8451Q(kWarpSensorOutputRegisterMMA8451QOUT_Y_MSB, 2 /* numberOfBytes */);
+	readSensorRegisterValueMSB = deviceMMA8451QState.i2cBuffer[0];
+	readSensorRegisterValueLSB = deviceMMA8451QState.i2cBuffer[1];
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 6) | (readSensorRegisterValueLSB >> 2);
+
+	/*
+	 *	Sign extend the 14-bit value based on knowledge that upper 2 bit are 0:
+	 */
+	readSensorRegisterValueCombined = (readSensorRegisterValueCombined ^ (1 << 13)) - (1 << 13);
+
+	if (i2cReadStatus != kWarpStatusOK)
+	{
+		warpPrint(" ----,");
+	}
+	else
+	{
+		if (hexModeFlag)
+		{
+			warpPrint(" 0x%02x 0x%02x,", readSensorRegisterValueMSB, readSensorRegisterValueLSB);
+		}
+		else
+		{
+			warpPrint(" %d,", readSensorRegisterValueCombined);
+		}
+	}
+
+	i2cReadStatus = readSensorRegisterMMA8451Q(kWarpSensorOutputRegisterMMA8451QOUT_Z_MSB, 2 /* numberOfBytes */);
+	readSensorRegisterValueMSB = deviceMMA8451QState.i2cBuffer[0];
+	readSensorRegisterValueLSB = deviceMMA8451QState.i2cBuffer[1];
+	readSensorRegisterValueCombined = ((readSensorRegisterValueMSB & 0xFF) << 6) | (readSensorRegisterValueLSB >> 2);
+
+	/*
+	 *	Sign extend the 14-bit value based on knowledge that upper 2 bit are 0:
+	 */
+	readSensorRegisterValueCombined = (readSensorRegisterValueCombined ^ (1 << 13)) - (1 << 13);
+
+	if (i2cReadStatus != kWarpStatusOK)
+	{
+		warpPrint(" ----,");
+	}
+	else
+	{
+		if (hexModeFlag)
+		{
+			warpPrint(" 0x%02x 0x%02x,", readSensorRegisterValueMSB, readSensorRegisterValueLSB);
+		}
+		else
+		{
+			warpPrint(" %d,", readSensorRegisterValueCombined);
 		}
 	}
 }
+
+// unfinished
+
 
 uint8_t appendSensorDataMMA8451Q(uint8_t* buf)
 {
@@ -356,6 +444,29 @@ mma8451_range_t getRangeMMA8451Q(void)
   /* Read the data format register to preserve bits */
 	readSensorRegisterMMA8451Q((MMA8451_REG_XYZ_DATA_CFG), 1);
 	range = deviceMMA8451QState.i2cBuffer[0];
+	switch(range){
+	case MMA8451_RANGE_8_G:
+		divider = 1024;
+		bitmask_int	=	0b0001110000000000;
+		bitmask_frac=	0b0000001111111111;
+		r_shift = 10;
+		r = 10; 
+		break;
+	case MMA8451_RANGE_4_G:
+		divider = 2048;
+		bitmask_int	=	0b0001100000000000;
+		bitmask_frac=	0b0000011111111111;
+		r_shift = 11;
+		r = 5;
+		break;
+	case MMA8451_RANGE_2_G:
+		divider = 4096;
+		bitmask_int	=	0b0001000000000000;
+		bitmask_frac=	0b0000111111111111;
+		r_shift = 12;
+		r = 2;
+		break;
+	}
 	return (mma8451_range_t)(range);
 }
 
@@ -378,68 +489,38 @@ int sign(myint){
 	int c = (myint==0)? 1:-1;
 	return c;
 }
-// what if, don't split XYZ, but present as a number to use in a whole function.
+
 void convert2dec_XYZ(void){
 	range = getRangeMMA8451Q();
-	switch(range){
-		case MMA8451_RANGE_8_G:
-			divider = 1024;
-			bitmask_int	=	0b0001110000000000;
-			bitmask_frac=	0b0000001111111111;
-			r_shift = 10;
-			r = 10; //using floats will be slow
-			break;
-		case MMA8451_RANGE_4_G:
-			divider = 2048;
-			bitmask_int	=	0b0001100000000000;
-			bitmask_frac=	0b0000011111111111;
-			r_shift = 11;
-			r = 5;
-			break;
-		case MMA8451_RANGE_2_G:
-			divider = 4096;
-			bitmask_int	=	0b0001000000000000;
-			bitmask_frac=	0b0000111111111111;
-			r_shift = 12;
-			r = 2;
-			break;
-	}
 	// if -ve
-	//!! TODO - Getting correct Sign output - always stuck on +ve sign - fixed
-	//!! Doesn't seem to handle the int portion correctly, either 0 to 4. at best - maybe realistic?
-	//!! where's the third bit up to 7?--> unable to detect sharp-ish twists as high multi-axis acceleration
 	x_pos = ((X>>15)==0) ? true : false;
-	X = ((X>>13)!=0) ? (~X)+1 : X; 
-	
+	X = (x_pos) ? X:(~X)+1;
+	uint_x = ((X & bitmask_int)>>r_shift);
+	frac_x = (X & bitmask_frac)*r;
+
 	y_pos = ((Y>>15)==0) ? true : false;
-	Y = ((Y>>15)!=0) ? (~Y)+1 : Y; 
+	Y = (y_pos) ? Y:(~Y)+1;  
+	uint_y = ((Y & bitmask_int)>>r_shift);
+	frac_y = (Y & bitmask_frac)*r;
 	
 	z_pos = ((Z>>15)==0) ? true : false;
-	Z = ((Z>>15)!=0) ? (~Z)+1 : Z; 
-
-	uint_x = ((X & bitmask_int)>>r_shift);
-	uint_y = ((Y & bitmask_int)>>r_shift);
+	Z = (z_pos) ? Z:(~Z)+1; 
 	uint_z = ((Z & bitmask_int)>>r_shift);
-
-	frac_x = (X & bitmask_frac)*r;
-	frac_y = (Y & bitmask_frac)*r;
 	frac_z = (Z & bitmask_frac)*r;
 }
-
 
 
 void printSensorDataMMA8451Q_XYZ(bool hexModeFlag)
 {
 
 	WarpStatus	i2cReadStatus;
-	//warpScaleSupplyVoltage(deviceMMA8451QState.operatingVoltageMillivolts);
-	//mma8451_range_t range = getRangeMMA8451Q();
+
 	i2cReadStatus = readSensorRegisterMMA8451Q(kWarpSensorOutputRegisterMMA8451QOUT_X_MSB, 6);
 	getSensorDataMMA8451Q_XYZ();
 
 	if (i2cReadStatus != kWarpStatusOK)
 	{
-		warpPrint(" ----,");
+		warpPrint("%s"," ----,");
 	}
 	else
 	{
@@ -491,24 +572,39 @@ int activateSensorMAA8451Q(void)
 
 
 // -----------------------------------------------------------------------------------------------
-const uint8_t sample_size = 25;
+uint32_t total_time_ms=0;
+uint32_t total_time_counter_ms=0;
+uint32_t time_counter_loop=0;
+uint32_t t2=0;
+uint32_t t1=0;
+uint32_t t0=0;
+uint32_t t00=0;
+
+int violent_counter=0;
+int gentle_counter=0;
+int high_counter=0;
+
+const uint8_t sample_size = 200;
 //uint16_t x_arr[16];
 //uint16_t y_arr[16];
-uint16_t z_arr[26];
+int16_t z_arr[200];
 //char z_data_out[80];
-double sgn_z;
-#define sqrt2 = 1.414213562
-bool still_x, still_y, still_z;
-double float_z;
 
-void printfloat(double myfloat){
+#define sqrt2 = 1.414213562F
+bool still_x, still_y, still_z;
+float float_z;
+
+//float z_farr[200];  -- allocating a float array is 2 much, 800B lol
+
+// switching from double to normal float works fine, since doubles overflow the m_text region of memory
+void printfloat(float myfloat){
 	// Does "%f" since SEGGER can't
 	// int typecasting always seems to round down
-	//char sgn_myfloat[0] = (myfloat>0) ? "+":"-";
 	int int_myfloat = (int)(myfloat);
-    int frac_myfloat = abs((int)((myfloat - int_myfloat)*1000));
+	//char sgn_myfloat[0] = (int_myfloat>0) ? "+":"-";
+    int frac_myfloat = abs((int)((myfloat - (float)int_myfloat)*10000));
 	//sign conversion  
-    printf("%d.%d",int_myfloat,(int)frac_myfloat);	
+    warpPrint("%d.%d\n",int_myfloat,frac_myfloat);	
 }
 
 
@@ -519,7 +615,7 @@ void waiting_room(void){
             warpPrint("\n");
             SEGGER_RTT_WriteString(0,buf);
             SEGGER_RTT_WriteString(0,"Motion detection sequence intitiated. \nPlace device facing up.\n"); 
-            OSA_TimeDelay(1500);
+            OSA_TimeDelay(3000);
             //devSSD_fill_white();
             return;
     }
@@ -527,7 +623,7 @@ void waiting_room(void){
 
 					// 0b0000110000000000 - 0x0C00
 //		((zcheck<<3) > 0b0110000000000000)	0X6000
-	void liftcheck(bool stillx, bool stilly, bool stillz){
+void liftcheck(bool stillx, bool stilly, bool stillz){
 		readSensorRegisterMMA8451Q(MMA8451_REG_OUT_X_MSB,6);
 
 		uint8_t Xcheck = deviceMMA8451QState.i2cBuffer[0];
@@ -542,7 +638,6 @@ void waiting_room(void){
 		//int16_t Zcheck = (((deviceMMA8451QState.i2cBuffer[4]<<6)|(deviceMMA8451QState.i2cBuffer[5]>>2))^(1<<13))-(1<<13);
 		//Xcheck  = ((Xcheck >>13)!=0) ? (~Xcheck)+1 : Xcheck ; 
 		//Ycheck  = ((Ycheck >>13)!=0) ? (~Ycheck)+1 : Ycheck ; 
-		// 
 
 		stillx = (((Xcheck>>4) & 0x07) >0x02) ? true : false;
 		(stillx) ? SEGGER_RTT_WriteString(0, "\n x still") : SEGGER_RTT_WriteString(0, "\n x moving");
@@ -570,58 +665,141 @@ int zliftcheck(bool stillz){
 	}
 }
 
+float convert2dec_Z(void){
+	readSensorRegisterMMA8451Q(MMA8451_REG_OUT_Z_MSB,2);
+	Z = (((deviceMMA8451QState.i2cBuffer[0]<<6)|(deviceMMA8451QState.i2cBuffer[1]>>2))^(1<<13))-(1<<13);	
+	z_pos = ((Z>>15)==0) ? true : false;
+	Z = (z_pos) ? Z:(~Z)+1; 
+	uint_z = ((Z & bitmask_int)>>r_shift);
+	frac_z = (Z & bitmask_frac)*r;
+	//warpPrint("%d.%d",uint_z,frac_z);
+
+	ffrac_z = (float)((Z & bitmask_frac)*(0.0009765625f));
+	float_z = (float)uint_z+ffrac_z;
+	float_z = (z_pos) ? float_z : float_z*-1;
+
+	return float_z;
+}
+
+
+
 // OSAtimedelays are chosen to align with 50Hz
 void mainloop(void){
 	bool still_x, still_y,still_z;
 	int liftflag=0;
-	for (int l=0; l<5000; l++){
-		if (l%50==0){
-			printSensorDataMMA8451Q_XYZ(false);
-			OSA_TimeDelay(20);
-		}
-		else{
-			//liftcheck(still_x, still_y, still_z);
+	while(total_time_counter_ms<TIME_LIMIT){
+		t0=OSA_TimeGetMsec();
+		for(int l=0; l<10; l++){
+		// prints out live data at lower than actual sampling rate
+			if (l%10==0){
+				printSensorDataMMA8451Q_XYZ(false);
+				OSA_TimeDelay(20);
+			}
+			else{
+			
 			liftflag = zliftcheck(still_z);
+			}
 			if (liftflag!=0){
+				bool z_pos2;
+				getRangeMMA8451Q();
 				for (int k=0; k<sample_size; k++){
+					t1=OSA_TimeGetMsec();
 					// grabs sample_size number of z readings after threshold is exceeded
-					readSensorRegisterMMA8451Q(MMA8451_REG_OUT_Z_MSB,2);
-					z_arr[k] = (deviceMMA8451QState.i2cBuffer[0]<<6)|(deviceMMA8451QState.i2cBuffer[1]>>2);
-				}
-					// Will corrupt X & Y data
-					r=10;
-				for (int k=0; k<sample_size; k++){
-					r_shift=10;
-					sgn_z = ((z_arr[k]>>15)==0) ? 1 : -1;
-					//z_pos = ((z_arr[k]>>15)==0) ? true : false;
-					Z = ((z_arr[k]>>15)!=0) ? (~Z)+1 : Z; 
-					uint_z = ((z_arr[k] & bitmask_int)>>r_shift);
-					frac_z = (z_arr[k] & bitmask_frac)*10;
-					ffrac_z = (double)((z_arr[k] & bitmask_frac)/1024);
-					float_z= uint_z+ffrac_z;
-					uint16_t iffrac_z = (uint16_t)((ffrac_z)*1000);
-					//double float_z = (double)uint_z + ffrac_z;
-					(z_pos) ? SEGGER_RTT_WriteString(0, "\n+") : SEGGER_RTT_WriteString(0, "\n-");
-					warpPrint("%d.%d",uint_z,iffrac_z);
+					float_z = convert2dec_Z();
+					z_arr[k] = (int16_t)float_z;
+					//stores z as positive, unsigned integer only -- loses accuracy
+					
+					printfloat(float_z);
 					//printfloat(float_z);
-					OSA_TimeDelay(40);
-					uint_z=0;
-					frac_z=0;
-					float_z=0;
-					ffrac_z=0;
+					OSA_TimeDelay(35); // calculating the math is currently at a +10ms overhead
+					t2=OSA_TimeGetMsec();
+					time_counter_loop+=(t2-t1);
 				}
-				
+				char alert[]="\nPING, YOU'VE TRIGGERED MOTION\n Dumped some sec of z values";
+				SEGGER_RTT_WriteString(0, alert);
+				warpPrint("\nsampling time elapsed is %d ms\n --> Close to 10 sec",time_counter_loop);
 				for (int o; o<5; o++){
 					//devSSD_fill_red();
-					OSA_TimeDelay(1000);
+					OSA_TimeDelay(100);
 					//devSSD_fill_blank();
 				}
-				//
-				char alert[]="PING, YOU'VE TRIGGERED MOTION\n Dumped 1s of z values";
-				SEGGER_RTT_WriteString(0, alert);
-				break;
+				t00=OSA_TimeGetMsec();
+				total_time_counter_ms+= t00-t0;
+				break;	
+			}
+
+			else{
+				continue;
 			}
 		}
+		t00=OSA_TimeGetMsec();
+		total_time_counter_ms+= t00-t0;
 	}
+	int harlem_shake = count_loop();
+	warpPrint("\n Total Time elapsed in detection loop = %d ms\n", total_time_counter_ms);
+	warpPrint("No of violent shakes = %d \n", violent_counter);;
+	warpPrint("Est No of shakes = %d \n", harlem_shake);
 	return;
 }
+
+// counts the array of z measurement points to 
+int count_loop(void){
+	int shake_count;
+	for (int k=1; k<sample_size; k++){
+		// decently accurate for large/hard movements
+		// searches a quantized int array of motion for 3g crossssings
+		// which will be near the peak
+		if ((z_arr[k]>=3)&(z_arr[k-1]<3)){
+			violent_counter++;
+		}
+		// not reliable
+		//if ((z_arr[k]>4)&(z_arr[k-1]<1)){
+		//	gentle_counter++;
+		//}
+		// not needed
+		//if ((z_arr[k]>7)&(z_arr[k-1]<5)){
+		//	high_counter++;
+		//}
+		else{
+			continue;
+		}
+		// 
+	}
+	shake_count+= violent_counter;
+	return shake_count;
+}
+
+float gaussian_compare(int count){
+	// if activity mean count is within 2 sigma of that distribution
+	// it's considered to belong to that distribution
+	if (stroke_min < count < stroke_max){
+		stroke_bool = true;
+
+
+		mean_stroke - count
+	}
+	if (shake_min < count < shake_max){
+		shake_bool = true;
+	}
+	erf();
+}
+
+
+
+
+
+// Testing 10 FMAs
+double prod;
+double sum;
+//uint32_t ta;
+//uint32_t tb;
+//uint32_t dt;
+void test_loop(double a1, double a2, double a3){
+	uint32_t ta =OSA_TimeGetMsec();
+	for (int i=0; i<1000; i++){
+		prod = (a1*a2)+a3;
+	}
+	uint32_t tb=OSA_TimeGetMsec();
+	uint32_t dt=tb-ta;
+	warpPrint("time elapsed doing FMA: %d ms", dt);
+} // better to do things as float

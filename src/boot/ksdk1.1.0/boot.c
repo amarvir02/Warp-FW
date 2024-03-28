@@ -1912,8 +1912,8 @@ main(void)
 	warpPrint("\n Looping INA219 measurements for num times");
 	warpPrint("\n config(HEX) | Shunt Voltage/uV | Bus Voltage/mV | Power/uW | Current/uA\n");
 	int16_t num = 15;
-	for (int i=0; i<num; i++)
-	{
+	//for (int i=0; i<num; i++)
+	//{
 	//config_and_cal();
 	//	printSensorDataINA219(false);
 	//	int val = i%3; 
@@ -1952,13 +1952,16 @@ main(void)
 
 	warpPrint("\n 10 seconds \n Printing xyz accelerometer data in [g]");
 	warpPrint("\n %s","Activating motion detection...");
-	warpPrint("\n %s","Lift to Trigger");
+	warpPrint("\n %s","To Trigger: Shake very quickly or Stroke in large motions");
+	
 	//motionConfigMMA8451Q();
 	// < (mythreshold+1)
 	waiting_room();
+
 	mainloop();
-		
+	
 	warpPrint("%s","\n DONE\n");
+
 	//devSSD_fill_red();
 	//motion_detection();
 

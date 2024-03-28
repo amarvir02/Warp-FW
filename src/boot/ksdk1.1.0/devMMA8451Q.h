@@ -40,7 +40,7 @@ void		initMMA8451Q(const uint8_t i2cAddress, uint16_t operatingVoltageMillivolts
 WarpStatus	readSensorRegisterMMA8451Q(uint8_t deviceRegister, int numberOfBytes);
 WarpStatus	writeSensorRegisterMMA8451Q(uint8_t deviceRegister, uint8_t payloadBtye);
 WarpStatus 	configureSensorMMA8451Q(uint8_t payloadF_SETUP, uint8_t payloadCTRL_REG1);
-void		printSensorDataMMA8451Q(bool hexModeFlag);
+//void		printSensorDataMMA8451Q(bool hexModeFlag);
 uint8_t		appendSensorDataMMA8451Q(uint8_t* buf);
 
 const uint8_t bytesPerMeasurementMMA8451Q            = 6;
@@ -132,6 +132,16 @@ typedef enum {
   MMA8451_DATARATE_MASK = 0b111
 } mma8451_dataRate_t;
 
+typedef enum {
+  MMA8451_SEL_X		= 0x01,
+  MMA8451_SEL_Y		= 0x02,
+  MMA8451_SEL_Z 	= 0x03,
+  MMA8451_SEL_XY	= 0x04,
+  MMA8451_SEL_XZ	= 0x05,
+  MMA8451_SEL_YZ	= 0x06,
+  MMA8451_SEL_XYZ	= 0x07,
+} mma8451_sel_t;
+
 #define FRAC_2d1 5000
 #define FRAC_2d2 2500
 #define FRAC_2d3 1250
@@ -158,6 +168,7 @@ int activateSensorMAA8451Q(void);
 void print_debug_X(void);
 void convert2dec_XYZ(void);
 
+void printfloat(float myfloat);
 int zliftcheck(bool stillz);
 void liftcheck(bool stillx, bool stilly, bool stillz);
 void waiting_room(void);
@@ -166,7 +177,8 @@ void mainloop(void);
 
 //void motionConfigMMA8451Q(void);
 //void motion_detection(void);
-
+int count_loop(void);
+void test_loop();
  
 const char pos_sign[] = "+";
 const char neg_sign[] = "-";
